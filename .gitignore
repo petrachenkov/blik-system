@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Env files
+.env
+.env.local
+!.env.example
+!infra/.env.example
+
+# Logs
+*.log
+npm-debug.log*
+
+# Prisma
+apps/backend/generated/
+
+# Uploads (local dev storage)
+apps/backend/uploads/
+
+# Editor/OS
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+*.swp
+
+# Testing
+coverage/
+
+# Claude Code — локальный/сессионный мусор, не для репозитория
+.claude/scheduled_tasks.lock
+
+# Разовые diagnostic-скрипты
+.tmp-*

@@ -1,0 +1,857 @@
+// Схема данных Blik — см. план в chat/plan: разделы "Схема данных" и "RBAC".
+// Запуск: npm run prisma:migrate (dev) / npm run prisma:deploy (prod)
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum UserRole {
+  ADMIN // Системный администратор — полный доступ ко всем функциям
+  INTERN // Практикант — видит и ведёт только назначенные ему заявки
+  USER // Заявитель (сотрудник/преподаватель)
+}
+
+enum UserSource {
+  LDAP
+  LOCAL // master / breakglass-аккаунты
+}
+
+enum TicketStatus {
+  NEW // создана заявителем, ещё не назначена
+  ASSIGNED // назначен исполнитель, классификация может быть ещё не выполнена
+  IN_PROGRESS // исполнитель классифицировал и взял в работу
+  RESOLVED // исполнитель считает проблему решённой
+  CLOSED // заявитель подтвердил закрытие (либо закрыто автоматически/админом)
+  REJECTED // отклонена (например, дубликат/не по адресу)
+  REOPENED // заявитель не согласен с решением, заявка возвращена в работу
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum HistoryAction {
+  CREATED
+  ASSIGNED
+  REASSIGNED
+  UNASSIGNED
+  CLASSIFIED
+  STATUS_CHANGED
+  COMMENTED
+  ATTACHMENT_ADDED
+  REOPENED
+  RATED // заявитель оценил решение заявки (см. план: "Оценка качества решения")
+  TAGGED // проставлены/изменены теги — авто по ключевым словам при создании или вручную сотрудником
+  VISIT_SCHEDULED // заявитель подтвердил окно визита техника (см. план "Планирование визита")
+  VISIT_RESCHEDULED // визит перенесён на другое время (перетаскивание в календаре)
+  VISIT_COMPLETED // визит отмечен состоявшимся
+  COLLABORATOR_ADDED // к заявке добавлен соисполнитель
+  COLLABORATOR_REMOVED // с заявки убран соисполнитель
+}
+
+enum NotificationType {
+  TICKET_CREATED
+  TICKET_ASSIGNED
+  TICKET_CLASSIFIED
+  TICKET_STATUS_CHANGED
+  TICKET_COMMENTED
+  TICKET_MENTIONED // упомянут @-мнением в комментарии заявки (см. план "Упоминания")
+  TICKET_RESPONSE_BREACHED
+  TICKET_RESOLUTION_BREACHED
+  CARTRIDGE_FILLED // отчёт с этим картриджем закрыт — картридж заправлен и возвращён
+  REFILL_EVENT_CREATED // главный сисадмин создал плановую заправку
+  REFILL_EVENT_REMINDER // напоминание о приближении дедлайна сдачи (за 3 дня / за 1 день)
+  ADMIN_BROADCAST // ручная рассылка от Главного сисадмина
+  SYSTEM_ERROR // в системе зафиксирована новая ошибка (см. план "Трекинг ошибок")
+  VISIT_PROPOSED // техник предложил время визита (см. план "Планирование визита")
+  VISIT_CONFIRMED // заявитель подтвердил окно визита
+  VISIT_CANCELLED // визит отменён одной из сторон
+  VISIT_REMINDER // напоминание о скором визите
+  VISIT_RESCHEDULED // визит перенесён системным администратором на другое время
+  TICKET_COLLABORATOR_ADDED // вас добавили соисполнителем по заявке
+}
+
+// Каталог переиспользуемых текстовых заготовок (см. план) — один и тот же тип модели для
+// шаблонов новых заявок и шаблонов быстрых ответов техника, т.к. структурно это одно и то же:
+// заголовок + текст, управляется Главным сисадмином через /admin/text-snippets.
+enum SnippetKind {
+  TICKET_TEMPLATE
+  CANNED_RESPONSE
+}
+
+enum CartridgeRequestStatus {
+  NEW // подана, код выдан, ждёт исполнителя
+  COLLECTED // исполнитель забрал картридж на заправку
+  SENT // включён в сформированный и напечатанный отчёт
+  FILLED // отчёт закрыт — картридж заправлен и возвращён
+  CANCELLED // отменена автором, пока заявка ещё не забрана
+}
+
+enum CartridgeReportStatus {
+  GENERATED // отчёт сформирован и напечатан, ждёт возврата картриджей
+  CLOSED // картриджи разнесены, все заявки отчёта закрыты
+}
+
+enum NotificationChannel {
+  IN_APP
+  MAX // мессенджер Max — см. план, раздел "Интеграция с Max"; сейчас не активен
+  WEB_PUSH // Web Push API браузера (см. план "Push-уведомления браузера")
+}
+
+enum LoginEventResult {
+  SUCCESS
+  INVALID_CREDENTIALS
+  ACCOUNT_DISABLED
+  LDAP_UNAVAILABLE
+  MAINTENANCE // верные данные, но вход не-админам закрыт режимом обслуживания (см. план)
+}
+
+enum ErrorSource {
+  BACKEND
+  FRONTEND
+}
+
+enum VisitStatus {
+  PROPOSED // техник предложил окна, ждём выбора заявителя
+  CONFIRMED // заявитель выбрал окно
+  DONE // визит состоялся
+  CANCELLED // отменён или заявитель отклонил все окна
+}
+
+enum DeliveryStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+// ---------------------------------------------------------------------------
+// Пользователи и аутентификация
+// ---------------------------------------------------------------------------
+
+model User {
+  id        String     @id @default(cuid())
+  username  String     @unique // sAMAccountName для LDAP, произвольный логин для LOCAL
+  email     String?
+  fullName  String
+  source    UserSource
+  role      UserRole   @default(USER)
+
+  // Только для source = LOCAL (master/breakglass-аккаунты)
+  passwordHash String?
+
+  isStaff   Boolean  @default(false) // разрешено ли создавать заявки (по членству в группе AD)
+  isActive  Boolean  @default(true)
+  // Единственный breakglass-суперпользователь (см. seed.ts). Только у него есть право
+  // безвозвратно удалять заявки — обычным SUPER_ADMIN это не разрешено (см. план: MasterOnlyGuard).
+  isMaster  Boolean  @default(false)
+  department String?
+
+  lastLoginAt DateTime?
+  // Первый вход показывает онбординг-тур (см. план "Онбординг-тур"); null -> ещё не пройден.
+  onboardingCompletedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  refreshTokens     RefreshToken[]
+  createdTickets    Ticket[]         @relation("TicketCreatedBy")
+  assignedTickets   Ticket[]         @relation("TicketAssignedTo")
+  classifiedTickets Ticket[]         @relation("TicketClassifiedBy")
+  comments          TicketComment[]
+  mentionedInComments TicketComment[] @relation("TicketCommentMentions")
+  attachments       TicketAttachment[]
+  historyEntries    TicketHistory[]
+  notifications     Notification[]
+  slaConfigUpdates  SlaConfig[]
+  maxLink           MaxLink?
+
+  cartridgeRequestsCreated   CartridgeRequest[] @relation("CartridgeCreatedBy")
+  cartridgeRequestsCollected CartridgeRequest[] @relation("CartridgeCollectedBy")
+  cartridgeReportsCreated    CartridgeReport[]  @relation("CartridgeReportCreatedBy")
+  cartridgeReportsClosed     CartridgeReport[]  @relation("CartridgeReportClosedBy")
+  refillEventsCreated        RefillEvent[]      @relation("RefillEventCreatedBy")
+  announcementUpdates        Announcement[]
+  knowledgeArticlesCreated   KnowledgeArticle[]
+  knowledgeAttachmentsUploaded KnowledgeArticleAttachment[]
+  webPushSubscriptions       WebPushSubscription[]
+  loginEvents                LoginEvent[]
+  notificationSettingsUpdates NotificationSettings[]
+  workingHoursUpdates        WorkingHoursSettings[]
+  systemFlagUpdates          SystemFlag[]           @relation("SystemFlagUpdatedBy")
+  errorLogs                  ErrorLog[]             @relation("ErrorLogUser")
+  kioskTokensCreated         KioskToken[]           @relation("KioskTokenCreatedBy")
+  visitsAsTechnician         TicketVisit[]          @relation("VisitTechnician")
+  visitsCreated              TicketVisit[]          @relation("VisitCreatedBy")
+  calendarTasksOwned         CalendarTask[]         @relation("CalendarTaskOwner")
+  calendarTasksCreated       CalendarTask[]         @relation("CalendarTaskCreatedBy")
+  ticketCollaborations       TicketCollaborator[]   @relation("TicketCollaboratorUser")
+  ticketCollaboratorAdds     TicketCollaborator[]   @relation("TicketCollaboratorAddedBy")
+  notificationPreferences    NotificationPreference[]
+  ticketRetentionUpdates     TicketRetentionSettings[]
+
+  @@index([role])
+}
+
+// Журнал входов — успешные и неудачные попытки (см. план "Журнал входов"). Отдельная модель,
+// а не RefreshToken: тот пишется и при login, и при refresh/ротации (шум), и не может хранить
+// неудачные попытки, т.к. токен на них не выпускается.
+model LoginEvent {
+  id        String           @id @default(cuid())
+  username  String // хранится как есть, даже если пользователь не найден/не резолвится
+  userId    String?
+  user      User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+  result    LoginEventResult
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime         @default(now())
+
+  @@index([userId])
+  @@index([username])
+  @@index([createdAt])
+}
+
+// Подписка браузера на Web Push (см. план) — у пользователя может быть несколько подписок
+// (разные устройства/браузеры), в отличие от MaxLink.
+model WebPushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model RefreshToken {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash  String    @unique
+  userAgent  String?
+  ipAddress  String?
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId])
+}
+
+// Заготовка под будущую интеграцию с мессенджером Max (см. план).
+// Реальная логика привязки/бота не реализуется сейчас — только модель данных.
+model MaxLink {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  externalUserId String   @unique
+  externalChatId String
+  createdAt      DateTime @default(now())
+}
+
+// ---------------------------------------------------------------------------
+// Справочники
+// ---------------------------------------------------------------------------
+
+model Category {
+  id       String   @id @default(cuid())
+  name     String
+  slug     String   @unique
+  isActive Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  tickets           Ticket[]
+  knowledgeArticles KnowledgeArticle[]
+}
+
+model Location {
+  id       String  @id @default(cuid())
+  building String
+  room     String
+  label    String? // например, "Кабинет информатики"
+  isActive Boolean @default(true)
+  createdAt DateTime @default(now())
+
+  tickets           Ticket[]
+  cartridgeRequests CartridgeRequest[]
+
+  @@unique([building, room])
+}
+
+// Каталог шаблонов заявок и шаблонов быстрых ответов техника (см. план) — управляется
+// Главным сисадмином на /admin/text-snippets, читается всеми аутентифицированными.
+model TextSnippet {
+  id        String      @id @default(cuid())
+  kind      SnippetKind
+  title     String
+  body      String
+  sortOrder Int         @default(0)
+  isActive  Boolean     @default(true)
+  createdAt DateTime    @default(now())
+
+  @@index([kind, isActive])
+}
+
+model SlaConfig {
+  id                 String         @id @default(cuid())
+  priority           TicketPriority @unique
+  responseMinutes    Int // срок на первую реакцию
+  resolutionMinutes  Int // срок на решение
+  updatedById        String?
+  updatedBy          User?          @relation(fields: [updatedById], references: [id], onDelete: SetNull)
+  updatedAt          DateTime       @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// Заявки
+// ---------------------------------------------------------------------------
+
+model Ticket {
+  id          String       @id @default(cuid())
+  number      String       @unique // человекочитаемый номер, напр. BLIK-000123
+  description String
+
+  locationId  String
+  location    Location     @relation(fields: [locationId], references: [id])
+
+  createdById String
+  createdBy   User         @relation("TicketCreatedBy", fields: [createdById], references: [id])
+
+  // Заполняются заявителем изначально как null — категорию/приоритет присваивает исполнитель
+  categoryId String?
+  category   Category?      @relation(fields: [categoryId], references: [id])
+  priority   TicketPriority?
+
+  assignedToId String?
+  assignedTo   User?   @relation("TicketAssignedTo", fields: [assignedToId], references: [id])
+
+  classifiedById String?
+  classifiedBy   User?     @relation("TicketClassifiedBy", fields: [classifiedById], references: [id])
+  classifiedAt   DateTime?
+
+  status TicketStatus @default(NEW)
+
+  // Снимок SLA-дедлайнов на момент классификации (см. план — раздел "SLA и просрочки")
+  responseDueAt   DateTime?
+  resolutionDueAt DateTime?
+  firstRespondedAt DateTime?
+  resolvedAt      DateTime?
+  closedAt        DateTime?
+
+  isResponseBreached   Boolean @default(false)
+  isResolutionBreached Boolean @default(false)
+
+  // Оценка качества решения заявителем — только после CLOSED (см. план "Оценка качества решения").
+  rating        Int?
+  ratingComment String?
+  ratedAt       DateTime?
+
+  // Автоархив старых закрытых/отклонённых заявок (см. план "Архив заявок"). null — активная.
+  archivedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  comments    TicketComment[]
+  attachments TicketAttachment[]
+  history     TicketHistory[]
+  notifications Notification[]
+  tags        Tag[]          @relation("TicketTags")
+  visits      TicketVisit[]
+  calendarTasks CalendarTask[]
+  collaborators TicketCollaborator[]
+
+  @@index([status])
+  @@index([assignedToId])
+  @@index([createdById])
+  @@index([categoryId])
+  @@index([archivedAt])
+}
+
+model TicketComment {
+  id       String  @id @default(cuid())
+  ticketId String
+  ticket   Ticket  @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  authorId String?
+  author   User?   @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  body     String
+  isSystem Boolean @default(false) // системная запись (напр. "статус изменён на ...")
+  // Внутренняя заметка — видна только сисадминам/практикантам/Главному сисадмину, не заявителю
+  // (см. план "Внутренние заметки"). Фильтруется на уровне CommentsService.findByTicket.
+  isInternal Boolean @default(false)
+
+  // Редактирование/мягкое удаление своего комментария (см. план) — без ограничения по времени.
+  // При deletedAt заданном текст в БД остаётся (аудит), но фронт показывает только плейсхолдер.
+  editedAt  DateTime?
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  attachments TicketAttachment[]
+  // Статьи базы знаний, прикреплённые к этому ответу (см. план "База знаний") — сотрудник
+  // техподдержки может сослаться на готовое решение вместо того, чтобы печатать его заново.
+  knowledgeArticles KnowledgeArticle[] @relation("CommentKnowledgeArticles")
+  // Коллеги, упомянутые через @ в тексте ответа (см. план "Упоминания") — только сотрудники.
+  mentions User[] @relation("TicketCommentMentions")
+
+  @@index([ticketId])
+}
+
+// commentId = null -> вложение прикреплено к самой заявке (например, при создании).
+// commentId задан -> вложение прикреплено к конкретному сообщению в чате.
+// Так фото/видео/файлы поддержаны единой моделью и там, и там (см. план).
+model TicketAttachment {
+  id       String  @id @default(cuid())
+  ticketId String
+  ticket   Ticket  @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  commentId String?
+  comment   TicketComment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  uploadedById String
+  uploadedBy   User   @relation(fields: [uploadedById], references: [id])
+
+  filename   String
+  storedPath String
+  mimeType   String
+  sizeBytes  Int
+
+  createdAt DateTime @default(now())
+
+  @@index([ticketId])
+  @@index([commentId])
+}
+
+model TicketHistory {
+  id       String        @id @default(cuid())
+  ticketId String
+  ticket   Ticket        @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  actorId String?
+  actor   User?   @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  action    HistoryAction
+  fromValue String?
+  toValue   String?
+
+  createdAt DateTime @default(now())
+
+  @@index([ticketId])
+}
+
+// ---------------------------------------------------------------------------
+// База знаний (см. план): статьи с готовыми решениями, которые сотрудник техподдержки
+// прикрепляет прямо к ответу на заявку — вместо того, чтобы печатать решение заново
+// каждый раз. "Примеры заявок" для статьи — не отдельное поле, а вычисляются на лету
+// по факту использования: все заявки, где статья была прикреплена хотя бы к одному
+// комментарию (см. knowledgeArticles на TicketComment и KnowledgeService.findOne).
+// ---------------------------------------------------------------------------
+
+model KnowledgeArticle {
+  id      String @id @default(cuid())
+  title   String
+  content String // текст решения
+
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  createdById String?
+  createdBy   User?   @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  usedInComments TicketComment[] @relation("CommentKnowledgeArticles")
+  attachments    KnowledgeArticleAttachment[]
+
+  @@index([categoryId])
+}
+
+// Файлы/скриншоты в статье БЗ (см. план) — точная копия TicketAttachment, но без commentId
+// (у статьи нет чата).
+model KnowledgeArticleAttachment {
+  id        String           @id @default(cuid())
+  articleId String
+  article   KnowledgeArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  uploadedById String?
+  uploadedBy   User?   @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  filename   String
+  storedPath String
+  mimeType   String
+  sizeBytes  Int
+
+  createdAt DateTime @default(now())
+
+  @@index([articleId])
+}
+
+// ---------------------------------------------------------------------------
+// Заправка картриджей (независимый поток заявок — см. план)
+// ---------------------------------------------------------------------------
+
+model CartridgeRequest {
+  id       String @id @default(cuid())
+  number   String @unique // человекочитаемый номер, напр. CART-000123
+  // 4-значный код, который преподаватель клеит на картридж. Уникальность обеспечивается
+  // не через @unique в БД, а на уровне сервиса — только среди заявок в активных статусах
+  // (NEW/COLLECTED/SENT), чтобы код можно было переиспользовать после FILLED/CANCELLED.
+  code     String
+
+  locationId String
+  location   Location @relation(fields: [locationId], references: [id])
+
+  createdById String
+  createdBy   User   @relation("CartridgeCreatedBy", fields: [createdById], references: [id])
+
+  status CartridgeRequestStatus @default(NEW)
+
+  collectedById String?
+  collectedBy   User?     @relation("CartridgeCollectedBy", fields: [collectedById], references: [id], onDelete: SetNull)
+  collectedAt   DateTime?
+
+  reportId String?
+  report   CartridgeReport? @relation(fields: [reportId], references: [id], onDelete: SetNull)
+
+  filledAt    DateTime?
+  cancelledAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([createdById])
+  @@index([reportId])
+}
+
+model CartridgeReport {
+  id     String                @id @default(cuid())
+  number String                @unique // человекочитаемый номер, напр. REPORT-000045
+  status CartridgeReportStatus @default(GENERATED)
+
+  createdById String
+  createdBy   User   @relation("CartridgeReportCreatedBy", fields: [createdById], references: [id])
+
+  closedById String?
+  closedBy   User?     @relation("CartridgeReportClosedBy", fields: [closedById], references: [id], onDelete: SetNull)
+  closedAt   DateTime?
+
+  // Сгенерированный Excel-файл отчёта — хранится через StorageProvider, как вложения заявок.
+  filename   String
+  storedPath String
+  mimeType   String
+  sizeBytes  Int
+
+  createdAt DateTime @default(now())
+
+  requests CartridgeRequest[]
+}
+
+// Плановая заправка — независима от CartridgeRequest (см. план): это только объявление
+// расписания + рассылка напоминаний, конкретные заявки к событию не привязываются.
+model RefillEvent {
+  id                 String   @id @default(cuid())
+  scheduledAt        DateTime // когда состоится отправка/забор картриджей
+  submissionDeadline DateTime // до какого момента можно сдать картридж на эту отправку
+  note               String?
+
+  createdById String
+  createdBy   User   @relation("RefillEventCreatedBy", fields: [createdById], references: [id])
+
+  // Guard-флаги антиспама для cron-напоминаний — по образцу isResponseBreached у Ticket.
+  reminder3dSentAt DateTime?
+  reminder1dSentAt DateTime?
+
+  isCancelled Boolean @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([submissionDeadline])
+}
+
+// Общесайтовый баннер-объявление — не привязан к конкретной заявке, в отличие от Notification
+// виден всем сразу после входа и висит, пока Главный сисадмин его не уберёт (см. план).
+// Singleton: всегда одна строка с фиксированным id.
+model Announcement {
+  id          String   @id @default("current")
+  text        String?
+  updatedById String?
+  updatedBy   User?    @relation(fields: [updatedById], references: [id], onDelete: SetNull)
+  updatedAt   DateTime @updatedAt
+}
+
+// Настройки "тихих часов" (см. план) — редактируются через UI (/admin/quiet-hours), а не
+// через .env: Главный сисадмин не может (и не должен) лезть в .env и перезапускать сервер
+// ради смены часов. Singleton, по образцу Announcement. quietHoursStart/End не заданы (оба
+// null) -> фича выключена (см. common/utils/quiet-hours.ts::isWithinQuietHours).
+model NotificationSettings {
+  id              String   @id @default("current")
+  quietHoursStart String?
+  quietHoursEnd   String?
+  updatedById     String?
+  updatedBy       User?    @relation(fields: [updatedById], references: [id], onDelete: SetNull)
+  updatedAt       DateTime @updatedAt
+}
+
+// Рабочие часы для планирования визитов системного администратора (см. план «Доработка календаря
+// визитов»). Singleton по образцу NotificationSettings. Окна визитов нельзя предлагать/подтверждать
+// вне [workdayStart, workdayEnd), в нерабочие дни недели и в даты из holidays.
+// См. common/utils/working-hours.ts::isWithinWorkingHours.
+model WorkingHoursSettings {
+  id          String   @id @default("current")
+  workdayStart String  @default("08:00")
+  workdayEnd   String  @default("19:00")
+  workingDays  Int[]   @default([1, 2, 3, 4, 5]) // 1=Пн … 7=Вс (ISO)
+  holidays     String[] @default([]) // нерабочие даты "YYYY-MM-DD"
+  updatedById  String?
+  updatedBy    User?    @relation(fields: [updatedById], references: [id], onDelete: SetNull)
+  updatedAt    DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// Уведомления
+// ---------------------------------------------------------------------------
+
+model Notification {
+  id       String           @id @default(cuid())
+  userId   String
+  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  ticketId String?
+  ticket   Ticket?          @relation(fields: [ticketId], references: [id], onDelete: SetNull)
+
+  type    NotificationType
+  title   String
+  body    String
+  payload Json?
+
+  isRead Boolean   @default(false)
+  readAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  deliveries        NotificationDelivery[]
+  pendingDeliveries PendingChannelDelivery[]
+
+  @@index([userId, isRead])
+}
+
+// Очередь отложенной доставки на время "тихих часов" (см. план "Тихие часы") — решение
+// "не пытаться пока вообще" принимается ДО вызова канала, поэтому не переиспользуем
+// DeliveryStatus.PENDING (тот пишется уже ПОСЛЕ попытки channel.send()).
+model PendingChannelDelivery {
+  id             String              @id @default(cuid())
+  notificationId String
+  notification   Notification        @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  channel        NotificationChannel
+  createdAt      DateTime            @default(now())
+
+  @@index([channel])
+}
+
+model NotificationDelivery {
+  id             String              @id @default(cuid())
+  notificationId String
+  notification   Notification        @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+
+  channel NotificationChannel
+  status  DeliveryStatus      @default(PENDING)
+  sentAt  DateTime?
+  error   String?
+
+  createdAt DateTime @default(now())
+
+  @@index([notificationId])
+}
+
+// ---------------------------------------------------------------------------
+// Администрирование и эксплуатация (см. план "Админ/ops-фичи")
+// ---------------------------------------------------------------------------
+
+// Флаги функциональности (№40) + режим обслуживания (№43, well-known ключ "maintenance_mode",
+// текст баннера — в note того же ряда). Многострочный аналог singleton-настроек Announcement.
+// enabled по умолчанию true — деплой ничего не выключает; сид проставляет строки идемпотентно.
+model SystemFlag {
+  key         String   @id
+  enabled     Boolean  @default(true)
+  note        String?
+  updatedById String?
+  updatedBy   User?    @relation("SystemFlagUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  updatedAt   DateTime @updatedAt
+}
+
+// Трекинг ошибок (№41) — «issue» в терминах Sentry: одинаковые ошибки группируются по
+// fingerprint (message + первый кадр стека), а не плодят по ряду на каждое повторение.
+model ErrorLog {
+  id          String      @id @default(cuid())
+  source      ErrorSource
+  fingerprint String
+  message     String
+  stack       String?
+  route       String? // путь запроса (бэк) / URL страницы (фронт)
+  method      String?
+  statusCode  Int?
+  userId      String?
+  user        User?       @relation("ErrorLogUser", fields: [userId], references: [id], onDelete: SetNull)
+  userAgent   String?
+  count       Int         @default(1)
+  firstSeenAt DateTime    @default(now())
+  lastSeenAt  DateTime    @default(now())
+  resolvedAt  DateTime?
+
+  @@index([fingerprint])
+  @@index([lastSeenAt])
+  @@index([resolvedAt])
+}
+
+// Авто-тегирование заявок (№17). Тег проставляется при создании заявки, если описание
+// содержит подстроку из любого правила тега (регистронезависимо), либо вручную сотрудником.
+model Tag {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  color     String? // имя цвета antd Tag ("blue"/"red"/...) или hex
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+
+  rules   TagRule[]
+  tickets Ticket[]  @relation("TicketTags")
+}
+
+model TagRule {
+  id        String   @id @default(cuid())
+  tagId     String
+  tag       Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  keyword   String // фраза для поиска в описании заявки (регистронезависимая подстрока)
+  createdAt DateTime @default(now())
+
+  @@index([tagId])
+}
+
+// Kiosk-доступ к настенной панели (№28) — долгоживущая read-only ссылка без пароля для
+// телевизора в дежурке. Отзыв — через revokedAt (не физическое удаление, для аудита).
+model KioskToken {
+  id          String    @id @default(cuid())
+  token       String    @unique
+  label       String
+  createdById String?
+  createdBy   User?     @relation("KioskTokenCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime  @default(now())
+  lastSeenAt  DateTime?
+  revokedAt   DateTime?
+}
+
+// Планирование визита техника к заявителю (№44). Техник предлагает 1–3 окна (VisitSlot),
+// заявитель выбирает одно → CONFIRMED, scheduledStart/End денормализуются с выбранного слота
+// для запроса «визиты на сегодня» на экране «Мой день» (№31).
+model TicketVisit {
+  id             String       @id @default(cuid())
+  ticketId       String
+  ticket         Ticket       @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  technicianId   String
+  technician     User         @relation("VisitTechnician", fields: [technicianId], references: [id])
+  status         VisitStatus  @default(PROPOSED)
+  note           String?
+  scheduledStart DateTime?
+  scheduledEnd   DateTime?
+  reminderSentAt DateTime? // guard-флаг для крон-напоминания за ~4 ч, по образцу RefillEvent
+  presenceReminderSentAt DateTime? // guard-флаг для короткого напоминания заявителю «будьте на месте» (~30 мин)
+  counterProposed Boolean     @default(false) // заявитель предложил своё время → окна подтверждает сотрудник
+  createdById    String
+  createdBy      User         @relation("VisitCreatedBy", fields: [createdById], references: [id])
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  slots          VisitSlot[]
+
+  @@index([technicianId, scheduledStart])
+  @@index([ticketId])
+  @@index([status])
+}
+
+model VisitSlot {
+  id      String      @id @default(cuid())
+  visitId String
+  visit   TicketVisit @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  start   DateTime
+  end     DateTime
+
+  @@index([visitId])
+}
+
+// Задача в календаре сотрудника техподдержки (см. план «Задачи в календаре»). Заводится
+// самим сотрудником: либо отдельная работа вне заявок, либо внутренняя работа по заявке
+// (ticketId), не требующая контакта с преподавателем. Выполнение — простой флаг done.
+model CalendarTask {
+  id          String   @id @default(cuid())
+  ownerId     String
+  owner       User     @relation("CalendarTaskOwner", fields: [ownerId], references: [id])
+  title       String
+  note        String?
+  start       DateTime
+  end         DateTime
+  done        Boolean  @default(false)
+  ticketId    String?
+  ticket      Ticket?  @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  createdById String
+  createdBy   User     @relation("CalendarTaskCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([ownerId, start])
+  @@index([ticketId])
+}
+
+// Соисполнитель заявки (см. план «Соисполнитель заявки») — сотрудник, которого позвали помочь
+// без переназначения. Полный доступ к работе по заявке (статус, классификация, визиты/задачи),
+// плюс видимость в списке и уведомления. Заявитель соисполнителем быть не может (только staff).
+model TicketCollaborator {
+  id        String   @id @default(cuid())
+  ticketId  String
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation("TicketCollaboratorUser", fields: [userId], references: [id], onDelete: Cascade)
+  addedById String?
+  addedBy   User?    @relation("TicketCollaboratorAddedBy", fields: [addedById], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+
+  @@unique([ticketId, userId])
+  @@index([userId])
+}
+
+// Личные настройки уведомлений (см. план). Строка = отклонение от дефолта (всё включено).
+// enabled=false — пользователь не получает по этому типу ничего (ни колокольчик, ни push).
+// push=false при enabled=true — колокольчик есть, push/мессенджер нет.
+model NotificationPreference {
+  userId  String
+  user    User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type    NotificationType
+  enabled Boolean          @default(true)
+  push    Boolean          @default(true)
+
+  @@id([userId, type])
+}
+
+// Политика хранения заявок (см. план «Архив заявок»). Singleton по образцу WorkingHoursSettings.
+// enabled=false — автоархив выключен. Данные не удаляются, только помечаются archivedAt.
+model TicketRetentionSettings {
+  id                     String   @id @default("current")
+  enabled                Boolean  @default(false)
+  archiveClosedAfterDays Int      @default(180)
+  updatedById            String?
+  updatedBy              User?    @relation(fields: [updatedById], references: [id], onDelete: SetNull)
+  updatedAt              DateTime @updatedAt
+}

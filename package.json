@@ -1,0 +1,18 @@
+{
+  "name": "blik-system",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Blik — система заявок на техническое обслуживание для колледжа",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:backend": "npm run start:dev --workspace apps/backend",
+    "dev:frontend": "npm run dev --workspace apps/frontend",
+    "build:backend": "npm run build --workspace apps/backend",
+    "build:frontend": "npm run build --workspace apps/frontend",
+    "prisma:generate": "npm run prisma:generate --workspace apps/backend",
+    "prisma:migrate": "npm run prisma:migrate --workspace apps/backend",
+    "prisma:seed": "npm run prisma:seed --workspace apps/backend"
+  }
+}
