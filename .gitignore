@@ -35,3 +35,7 @@ coverage/
 
 # Разовые diagnostic-скрипты
 .tmp-*
+
+# Исходник CA-сертификата в виде, как экспортирован из Windows (DER/.cer) — в репозитории
+# нужен только сконвертированный infra/certs/*.pem (см. infra/.env.example LDAP_TLS_CA_PATH).
+infra/*.cer

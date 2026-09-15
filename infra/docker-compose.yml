@@ -29,6 +29,9 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-blik}:${POSTGRES_PASSWORD:-change-me}@postgres:5432/${POSTGRES_DB:-blik}?schema=public
     volumes:
       - uploads:/app/uploads
+      # Сертификат внутреннего CA колледжа для ldaps:// (см. LDAP_TLS_CA_PATH в .env.example) —
+      # публичный сертификат, не секрет, можно хранить в репозитории как есть.
+      - ./certs:/certs:ro
     ports:
       - '3000:3000'
 
