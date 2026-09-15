@@ -1,9 +1,15 @@
-import { Card, Col, Rate, Row, Space, Table, Tag, Typography, theme } from 'antd';
-import { useQuery } from '@tanstack/react-query';
-import { fetchAssigneeStats } from '../../shared/api/tickets';
+import { useState } from 'react';
+import { Button, Card, Col, DatePicker, Rate, Row, Space, Table, Tag, Typography, App as AntdApp, theme } from 'antd';
+import { DownloadOutlined } from '@ant-design/icons';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import type { Dayjs } from 'dayjs';
+import { downloadAssigneeStatsReport, fetchAssigneeStats } from '../../shared/api/tickets';
 import { ROLE_LABELS } from '../../shared/labels';
+import { extractErrorMessage } from '../../shared/api/errors';
 import { HorizontalBarChart } from '../../shared/charts/HorizontalBarChart';
 import type { AssigneeStats } from '../../shared/types';
+
+const { RangePicker } = DatePicker;
 
 function formatMinutes(minutes: number | null): string {
   if (minutes === null) return '—';
@@ -18,7 +24,22 @@ function formatMinutes(minutes: number | null): string {
 /** "Кто, что и как" — полноценная статистика по исполнителям, не просто счётчик (см. план). */
 export function AssigneeStatsPage() {
   const { token } = theme.useToken();
-  const { data = [], isLoading } = useQuery({ queryKey: ['assignee-stats'], queryFn: fetchAssigneeStats });
+  const { message } = AntdApp.useApp();
+  // null — за всё время (по умолчанию, поведение не изменилось). Выбрав диапазон, сисадмин
+  // сам ограничивает и графики/таблицу на экране, и документ на скачивание одним и тем же
+  // периодом — см. план "Отчёт по статистике за период".
+  const [range, setRange] = useState<[Dayjs, Dayjs] | null>(null);
+  const period = range ? { from: range[0].startOf('day').toISOString(), to: range[1].endOf('day').toISOString() } : undefined;
+
+  const { data = [], isLoading } = useQuery({
+    queryKey: ['assignee-stats', period],
+    queryFn: () => fetchAssigneeStats(period),
+  });
+
+  const downloadMutation = useMutation({
+    mutationFn: () => downloadAssigneeStatsReport(period),
+    onError: (error) => message.error(extractErrorMessage(error, 'Не удалось скачать отчёт')),
+  });
 
   // Единый порядок исполнителей для всех графиков — так один и тот же человек стоит
   // на одной и той же строке во всех карточках, и их проще сопоставлять между собой.
@@ -27,6 +48,16 @@ export function AssigneeStatsPage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <Card size="small">
+        <Space wrap size={12}>
+          <RangePicker value={range} onChange={(v) => setRange(v && v[0] && v[1] ? [v[0], v[1]] : null)} format="DD.MM.YYYY" allowClear placeholder={['С даты', 'По дату']} />
+          {range && <Typography.Link onClick={() => setRange(null)}>За всё время</Typography.Link>}
+          <Button icon={<DownloadOutlined />} loading={downloadMutation.isPending} onClick={() => downloadMutation.mutate()}>
+            Скачать отчёт (.xlsx)
+          </Button>
+        </Space>
+      </Card>
+
       <Row gutter={[16, 16]}>
         <Col xs={24} lg={12}>
           <Card title="Текущая нагрузка" size="small">

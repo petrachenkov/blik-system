@@ -287,8 +287,8 @@ export function TicketDetailPage() {
   const canReopen = nextStatuses.includes('REOPENED') && (isCreator || isAdmin);
 
   return (
-    <Row gutter={16}>
-      <Col span={16}>
+    <Row gutter={[16, 16]}>
+      <Col xs={24} lg={16}>
         <Card
           title={
             <Space wrap>
@@ -750,7 +750,7 @@ export function TicketDetailPage() {
         </Card>
       </Col>
 
-      <Col span={8}>
+      <Col xs={24} lg={8}>
         <Card title="История заявки">
           {(historyQuery.data ?? []).length === 0 ? (
             <Empty description="Пока пусто" image={Empty.PRESENTED_IMAGE_SIMPLE} />

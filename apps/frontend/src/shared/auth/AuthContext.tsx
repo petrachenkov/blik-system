@@ -8,6 +8,10 @@ interface AuthContextValue {
   user: CurrentUser | null;
   isLoading: boolean;
   login: (username: string, password: string) => Promise<void>;
+  /** Заводит сессию по уже полученным токену+пользователю — используется обычным login()
+   *  и входом через MAX-мини-приложение (см. план "Мини-приложение MAX"), чтобы не дублировать
+   *  логику хранения токена/пользователя. */
+  loginWithTokens: (accessToken: string, user: CurrentUser) => void;
   logout: () => Promise<void>;
   refetchMe: () => Promise<void>;
 }
@@ -44,11 +48,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const login = useCallback(async (username: string, password: string) => {
-    const res = await apiLogin(username, password);
-    setAccessToken(res.accessToken);
-    setUser(res.user);
+  const loginWithTokens = useCallback((accessToken: string, nextUser: CurrentUser) => {
+    setAccessToken(accessToken);
+    setUser(nextUser);
   }, []);
+
+  const login = useCallback(
+    async (username: string, password: string) => {
+      const res = await apiLogin(username, password);
+      loginWithTokens(res.accessToken, res.user);
+    },
+    [loginWithTokens],
+  );
 
   const logout = useCallback(async () => {
     try {
@@ -65,8 +76,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ user, isLoading, login, logout, refetchMe }),
-    [user, isLoading, login, logout, refetchMe],
+    () => ({ user, isLoading, login, loginWithTokens, logout, refetchMe }),
+    [user, isLoading, login, loginWithTokens, logout, refetchMe],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

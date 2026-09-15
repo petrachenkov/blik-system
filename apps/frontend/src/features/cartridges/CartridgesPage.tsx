@@ -1,5 +1,5 @@
-import { Alert, Button, Card, Form, Popconfirm, Select, Space, Steps, Table, Tag, Typography, App as AntdApp } from 'antd';
-import { EnvironmentOutlined, NumberOutlined, SendOutlined, TagOutlined } from '@ant-design/icons';
+import { Alert, Button, Card, Form, Popconfirm, Select, Space, Steps, Table, Tag, Typography, App as AntdApp, theme } from 'antd';
+import { EnvironmentOutlined, InfoCircleOutlined, NumberOutlined, SendOutlined, TagOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import dayjs from 'dayjs';
@@ -21,6 +21,7 @@ export function CartridgesPage() {
   // рендерятся вне дерева ConfigProvider и не подхватывают тёмную тему (см. фидбэк — код
   // в модалке оставался светлым при тёмной теме).
   const { message, modal } = AntdApp.useApp();
+  const { token } = theme.useToken();
   const queryClient = useQueryClient();
   const [form] = Form.useForm<FormValues>();
   const [status, setStatus] = useState<CartridgeRequestStatus | undefined>(undefined);
@@ -125,18 +126,31 @@ export function CartridgesPage() {
           </>
         ) : (
           // Развёрнутый, "объясняющий" вариант для преподавателей (см. фидбэк — с первого
-          // взгляда должно быть понятно, что и как делать): наглядные шаги + крупная форма.
+          // взгляда должно быть понятно, что и как делать): инструкция вынесена в заметный
+          // цветной блок над формой (было — маленькие Steps без акцента, терялись на странице,
+          // см. фидбэк "сделай более выделяющуюся инструкцию, чтобы была заметна").
           <div style={{ marginBottom: 24, maxWidth: 640 }}>
-            <Steps
-              size="small"
-              current={0}
-              items={[
-                { title: 'Выберите кабинет', icon: <EnvironmentOutlined /> },
-                { title: 'Получите код', icon: <NumberOutlined /> },
-                { title: 'Наклейте код на картридж', icon: <TagOutlined /> },
-              ]}
-              style={{ marginBottom: 20 }}
-            />
+            <div
+              style={{
+                background: token.colorPrimaryBg,
+                border: `1px solid ${token.colorPrimaryBorder}`,
+                borderRadius: token.borderRadiusLG,
+                padding: '18px 20px',
+                marginBottom: 20,
+              }}
+            >
+              <Typography.Title level={5} style={{ margin: '0 0 14px', display: 'flex', alignItems: 'center', gap: 8, color: token.colorPrimaryText }}>
+                <InfoCircleOutlined /> Как сдать картридж на заправку
+              </Typography.Title>
+              <Steps
+                current={0}
+                items={[
+                  { title: 'Выберите кабинет', icon: <EnvironmentOutlined /> },
+                  { title: 'Получите код', icon: <NumberOutlined /> },
+                  { title: 'Наклейте код на картридж', icon: <TagOutlined /> },
+                ]}
+              />
+            </div>
             <Form form={form} size="large" onFinish={(values) => createMutation.mutate(values)}>
               <Form.Item name="locationId" label="Кабинет, откуда сдаётся картридж" rules={[{ required: true, message: 'Выберите кабинет' }]}>
                 <Select

@@ -51,6 +51,11 @@ export const envSchema = z.object({
   // "Тихие часы" уведомлений настраиваются через UI (см. NotificationSettings в schema.prisma
   // и /admin/quiet-hours), не через .env — Главный сисадмин не может редактировать .env
   // и перезапускать сервер ради смены часов.
+
+  // MAX-мини-приложение (см. план "Мини-приложение MAX") — токен бота нужен для проверки
+  // подписи initData (HMAC-SHA256). Опционален по образцу VAPID: не задан — фича мягко
+  // скрывается (GET /auth/max/status -> configured:false), сервер не падает при старте.
+  MAX_BOT_TOKEN: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

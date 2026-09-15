@@ -117,6 +117,7 @@ enum LoginEventResult {
   ACCOUNT_DISABLED
   LDAP_UNAVAILABLE
   MAINTENANCE // верные данные, но вход не-админам закрыт режимом обслуживания (см. план)
+  MAX_LINK_REQUIRED // открыли мини-приложение MAX, привязки ещё нет — показана форма входа
 }
 
 enum ErrorSource {

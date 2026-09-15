@@ -1,0 +1,6 @@
+# HTTPS-терминатор перед nginx (см. README "Продакшен за Ideco/Portainer"). Caddy сам получает
+# и продлевает сертификат Let's Encrypt по домену из DOMAIN — нужно только, чтобы 80 и 443
+# были действительно проброшены на эту машину (порт 80 нужен для ACME HTTP-01 challenge).
+{$DOMAIN} {
+	reverse_proxy nginx:80
+}

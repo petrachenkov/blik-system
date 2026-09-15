@@ -1,4 +1,4 @@
-import { Injectable, Logger, ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
+import { ConflictException, Injectable, Logger, ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
@@ -12,6 +12,7 @@ import { FeatureFlagsService } from '../system/feature-flags.service.js';
 import { LoginEventResult, UserRole, UserSource, type User } from '../../generated/prisma/index.js';
 import type { JwtAccessPayload } from './strategies/jwt.strategy.js';
 import type { JwtRefreshPayload } from './strategies/jwt-refresh.strategy.js';
+import { validateMaxInitData } from '../integrations/max/max-init-data.util.js';
 
 export interface AuthTokens {
   accessToken: string;
@@ -56,10 +57,13 @@ export class AuthService {
   }
 
   /**
-   * Единая точка входа: сначала пробуем локальную (master/breakglass) учётку, затем LDAP.
+   * Проверка логина/пароля: сначала пробуем локальную (master/breakglass) учётку, затем LDAP.
    * Локальные учётки существуют независимо от AD именно на случай, когда AD недоступен.
+   * Вынесено из `login()` в отдельный метод, чтобы им же мог воспользоваться вход через
+   * MAX-мини-приложение при первой привязке аккаунта (см. `loginAndLinkMax`) — та же проверка
+   * пароля, тот же аудит, без дублирования.
    */
-  async login(username: string, password: string, ctx: LoginContext = {}): Promise<{ user: User; tokens: AuthTokens }> {
+  private async verifyCredentials(username: string, password: string, ctx: LoginContext): Promise<User> {
     const existingLocalUser = await this.usersService.findByUsername(username);
 
     let authenticatedUser: User | null = null;
@@ -103,8 +107,12 @@ export class AuthService {
     }
 
     await this.assertNotBlockedByMaintenance(authenticatedUser, ctx);
-
     await this.recordLoginEvent({ username, userId: authenticatedUser.id, result: LoginEventResult.SUCCESS, ctx });
+    return authenticatedUser;
+  }
+
+  async login(username: string, password: string, ctx: LoginContext = {}): Promise<{ user: User; tokens: AuthTokens }> {
+    const authenticatedUser = await this.verifyCredentials(username, password, ctx);
     const tokens = await this.issueTokens(authenticatedUser, ctx);
     return { user: authenticatedUser, tokens };
   }
@@ -200,5 +208,84 @@ export class AuthService {
       where: { id: tokenId, revokedAt: null },
       data: { revokedAt: new Date() },
     });
+  }
+
+  // --- MAX-мини-приложение (см. план "Мини-приложение MAX") ---
+
+  isMaxConfigured(): boolean {
+    return Boolean(this.config.get('MAX_BOT_TOKEN', { infer: true }));
+  }
+
+  private requireMaxBotToken(): string {
+    const token = this.config.get('MAX_BOT_TOKEN', { infer: true });
+    if (!token) throw new ServiceUnavailableException('Интеграция с MAX не настроена');
+    return token;
+  }
+
+  /**
+   * Вход по уже привязанному MAX-аккаунту: MAX сам передаёт подписанную initData при каждом
+   * открытии мини-приложения, отдельного пароля вводить не нужно. Если привязки ещё нет —
+   * кидаем `UnauthorizedException('MAX_LINK_REQUIRED')`, по этому сообщению фронт показывает
+   * форму логина и переходит на `loginAndLinkMax`, а не общую ошибку входа.
+   */
+  async loginViaMax(initData: string, ctx: LoginContext = {}): Promise<{ user: User; tokens: AuthTokens }> {
+    const botToken = this.requireMaxBotToken();
+    const parsed = validateMaxInitData(initData, botToken);
+    if (!parsed) throw new UnauthorizedException('Недействительные данные MAX');
+
+    const link = await this.prisma.maxLink.findUnique({ where: { externalUserId: parsed.userId }, include: { user: true } });
+    if (!link) {
+      await this.recordLoginEvent({ username: `max:${parsed.userId}`, result: LoginEventResult.MAX_LINK_REQUIRED, ctx });
+      throw new UnauthorizedException('MAX_LINK_REQUIRED');
+    }
+    if (!link.user.isActive) {
+      throw new UnauthorizedException('Учётная запись отключена');
+    }
+
+    await this.assertNotBlockedByMaintenance(link.user, ctx);
+    await this.recordLoginEvent({ username: link.user.username, userId: link.user.id, result: LoginEventResult.SUCCESS, ctx });
+    const tokens = await this.issueTokens(link.user, ctx);
+    return { user: link.user, tokens };
+  }
+
+  /**
+   * Первый вход через MAX: проверяем обычный логин/пароль Blik (тем же путём, что и веб-вход)
+   * и, если успешно, привязываем текущий MAX-аккаунт (уже известный из initData) к этому
+   * пользователю — больше пароль при последующих открытиях мини-приложения не нужен.
+   */
+  async loginAndLinkMax(
+    initData: string,
+    username: string,
+    password: string,
+    ctx: LoginContext = {},
+  ): Promise<{ user: User; tokens: AuthTokens }> {
+    const botToken = this.requireMaxBotToken();
+    const parsed = validateMaxInitData(initData, botToken);
+    if (!parsed) throw new UnauthorizedException('Недействительные данные MAX');
+
+    const authenticatedUser = await this.verifyCredentials(username, password, ctx);
+
+    const existingLink = await this.prisma.maxLink.findUnique({ where: { externalUserId: parsed.userId } });
+    if (existingLink && existingLink.userId !== authenticatedUser.id) {
+      throw new ConflictException('Этот MAX-аккаунт уже привязан к другому пользователю Blik');
+    }
+
+    await this.prisma.maxLink.upsert({
+      where: { userId: authenticatedUser.id },
+      update: { externalUserId: parsed.userId, externalChatId: parsed.chatId },
+      create: { userId: authenticatedUser.id, externalUserId: parsed.userId, externalChatId: parsed.chatId },
+    });
+
+    const tokens = await this.issueTokens(authenticatedUser, ctx);
+    return { user: authenticatedUser, tokens };
+  }
+
+  async unlinkMax(userId: string): Promise<void> {
+    await this.prisma.maxLink.deleteMany({ where: { userId } });
+  }
+
+  async getMaxLinkStatus(userId: string): Promise<boolean> {
+    const link = await this.prisma.maxLink.findUnique({ where: { userId } });
+    return link !== null;
   }
 }

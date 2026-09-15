@@ -140,9 +140,27 @@ export function deleteTicket(id: string) {
   return apiClient.delete(`/tickets/${id}`).then((r) => r.data);
 }
 
-/** Полноценная статистика по исполнителям — только Главному сисадмину (см. план). */
-export function fetchAssigneeStats() {
-  return apiClient.get<AssigneeStats[]>('/tickets/stats/by-assignee').then((r) => r.data);
+export interface StatsPeriod {
+  from?: string;
+  to?: string;
+}
+
+/** Полноценная статистика по исполнителям — только Главному сисадмину (см. план).
+ *  Без периода — за всё время. */
+export function fetchAssigneeStats(period?: StatsPeriod) {
+  return apiClient.get<AssigneeStats[]>('/tickets/stats/by-assignee', { params: period }).then((r) => r.data);
+}
+
+/** Та же статистика документом за выбранный период (см. план "Отчёт по статистике за период"). */
+export async function downloadAssigneeStatsReport(period?: StatsPeriod) {
+  const res = await apiClient.get('/tickets/stats/by-assignee/export', { params: period, responseType: 'blob' });
+  const url = URL.createObjectURL(res.data as Blob);
+  const link = document.createElement('a');
+  link.href = url;
+  const suffix = period?.from && period?.to ? `${period.from.slice(0, 10)}_${period.to.slice(0, 10)}` : 'vse-vremya';
+  link.download = `statistika_${suffix}.xlsx`;
+  link.click();
+  URL.revokeObjectURL(url);
 }
 
 /** PDF-справка о собственных заявках — с хронологией и чатом по каждой. Эндпоинт защищён

@@ -675,8 +675,16 @@ export class TicketsService {
    * Полноценная статистика по исполнителям — "кто, что и как" (см. план), не просто счётчик.
    * Средние времена реакции/решения — разница двух DateTime-колонок, Prisma ORM это не умеет
    * напрямую, поэтому один агрегирующий $queryRaw (тот же приём, что и nextval() для номеров).
+   *
+   * `from`/`to` — необязательный период по дате создания заявки (см. план "Отчёт по статистике
+   * за период"); фронт присылает границы дня целиком (startOf/endOf), поэтому здесь просто
+   * прямое сравнение. Без обеих границ — вместо условного SQL-фрагмента (в проекте нет
+   * прецедента Prisma.sql/Prisma.empty) подставляем заведомо неограничивающий диапазон —
+   * запрос остаётся одним статическим шаблоном.
    */
-  async getAssigneeStats(): Promise<AssigneeStatsRow[]> {
+  async getAssigneeStats(from?: Date, to?: Date): Promise<AssigneeStatsRow[]> {
+    const fromDate = from ?? new Date(0);
+    const toDate = to ?? new Date('9999-12-31T23:59:59.999Z');
     return this.prisma.$queryRaw<AssigneeStatsRow[]>`
       SELECT
         u."id" AS "userId",
@@ -694,6 +702,7 @@ export class TicketsService {
       FROM "User" u
       JOIN "Ticket" t ON t."assignedToId" = u."id"
       WHERE u."role" IN ('ADMIN', 'INTERN') AND u."isActive" = true
+        AND t."createdAt" >= ${fromDate} AND t."createdAt" <= ${toDate}
       GROUP BY u."id", u."fullName", u."role"
       ORDER BY u."fullName"
     `;

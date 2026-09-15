@@ -44,7 +44,9 @@ import { UpdateCommentDto } from './dto/update-comment.dto.js';
 import { RateTicketDto } from './dto/rate-ticket.dto.js';
 import { SetTagsDto } from './dto/set-tags.dto.js';
 import { AddCollaboratorDto, BulkTicketActionDto, SetArchivedDto } from './dto/bulk-ticket-action.dto.js';
+import { StatsPeriodQueryDto } from './dto/stats-period-query.dto.js';
 import { buildMyTicketsReportPdf, buildSingleTicketPdf } from './ticket-report-pdf.builder.js';
+import { buildAssigneeStatsWorkbook } from './assignee-stats-report.builder.js';
 
 const MULTER_OPTIONS = { storage: memoryStorage() };
 
@@ -76,8 +78,26 @@ export class TicketsController {
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN)
   @Get('stats/by-assignee')
-  getAssigneeStats() {
-    return this.ticketsService.getAssigneeStats();
+  getAssigneeStats(@Query() query: StatsPeriodQueryDto) {
+    return this.ticketsService.getAssigneeStats(
+      query.from ? new Date(query.from) : undefined,
+      query.to ? new Date(query.to) : undefined,
+    );
+  }
+
+  /** Та же статистика документом (см. план "Отчёт по статистике за период") — до :id. */
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @Get('stats/by-assignee/export')
+  async exportAssigneeStats(@Query() query: StatsPeriodQueryDto, @Res() res: Response) {
+    const from = query.from ? new Date(query.from) : null;
+    const to = query.to ? new Date(query.to) : null;
+    const rows = await this.ticketsService.getAssigneeStats(from ?? undefined, to ?? undefined);
+    const buffer = await buildAssigneeStatsWorkbook({ generatedAt: new Date(), from, to, rows });
+    const suffix = from && to ? `${from.toISOString().slice(0, 10)}_${to.toISOString().slice(0, 10)}` : 'vse-vremya';
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="statistika_${suffix}.xlsx"`);
+    res.send(buffer);
   }
 
   /** Экран «Мой день» — только сотрудники техподдержки (см. план №31). Литеральный путь до :id. */

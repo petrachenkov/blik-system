@@ -28,6 +28,7 @@ import {
   HomeOutlined,
   SearchOutlined,
   BellOutlined,
+  MessageOutlined,
 } from '@ant-design/icons';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
@@ -255,6 +256,12 @@ export function AppLayout() {
                   icon: <BellOutlined />,
                   label: 'Настройки уведомлений',
                   onClick: () => navigate('/settings/notifications'),
+                },
+                {
+                  key: 'max-settings',
+                  icon: <MessageOutlined />,
+                  label: 'MAX',
+                  onClick: () => navigate('/settings/max'),
                 },
                 { type: 'divider' },
                 { key: 'logout', icon: <LogoutOutlined />, label: 'Выйти', onClick: () => { void logout().then(() => navigate('/login')); } },

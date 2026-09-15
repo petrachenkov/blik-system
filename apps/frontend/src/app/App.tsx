@@ -31,8 +31,10 @@ import { WallboardKioskPage } from '../features/admin/WallboardKioskPage';
 import { WallboardPage } from '../features/wallboard/WallboardPage';
 import { KnowledgeBasePage } from '../features/knowledge/KnowledgeBasePage';
 import { KnowledgeArticleDetailPage } from '../features/knowledge/KnowledgeArticleDetailPage';
+import { MaxLinkPage } from '../features/settings/MaxLinkPage';
 import { AppLayout } from './AppLayout';
 import { ProtectedRoute } from './ProtectedRoute';
+import { MaxAppBootstrap } from './MaxAppBootstrap';
 
 export function App() {
   return (
@@ -42,6 +44,10 @@ export function App() {
       {/* Настенная панель — вне общего layout и вне ProtectedRoute: телевизор открывает её
           по kiosk-ссылке без входа (доступ проверяется на бэкенде). */}
       <Route path="/wallboard" element={<WallboardPage />} />
+
+      {/* Точка входа мини-приложения MAX (см. план) — своя логика входа до сессии, поэтому
+          тоже вне ProtectedRoute/AppLayout; после входа обычный редирект в общий Blik. */}
+      <Route path="/max" element={<MaxAppBootstrap />} />
 
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>
@@ -55,6 +61,7 @@ export function App() {
           <Route path="/tickets/new" element={<CreateTicketPage />} />
           <Route path="/tickets/:id" element={<TicketDetailPage />} />
           <Route path="/settings/notifications" element={<NotificationPreferencesPage />} />
+          <Route path="/settings/max" element={<MaxLinkPage />} />
           <Route path="/cartridges" element={<CartridgesPage />} />
           {/* Открыта всем аутентифицированным — преподаватель может перейти сюда по ссылке
               из ответа на собственную заявку (см. план "База знаний"); список/создание — ниже,

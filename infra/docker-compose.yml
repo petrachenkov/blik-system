@@ -33,16 +33,35 @@ services:
       - '3000:3000'
 
   # Multi-stage сборка: React (vite build) -> статика, отдаваемая nginx, который также
-  # проксирует /api и /socket.io на backend. Отдельный "frontend"-сервис не нужен.
+  # проксирует /api и /socket.io на backend. Отдельный "frontend"-сервис не нужен. Порт наружу
+  # не публикуем — снаружи стоит caddy (см. ниже), nginx доступен только внутри docker-сети.
   nginx:
     build:
       context: ../apps/frontend
     restart: unless-stopped
     depends_on:
       - backend
+
+  # TLS-терминатор перед nginx — сам получает и продлевает сертификат Let's Encrypt по DOMAIN
+  # (см. infra/.env.example и Caddyfile). Нужен, чтобы наружу торчал HTTPS, а не голый :80 —
+  # обязательно для мини-приложения MAX и для браузерных Web Push.
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - nginx
+    environment:
+      DOMAIN: ${DOMAIN:?укажите публичный домен в .env, например blik.college.ru}
     ports:
       - '80:80'
+      - '443:443'
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
 
 volumes:
   pgdata:
   uploads:
+  caddy_data:
+  caddy_config:

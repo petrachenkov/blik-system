@@ -242,6 +242,7 @@ export function TicketsListPage() {
       <Table<Ticket>
         rowKey="id"
         loading={isLoading}
+        scroll={{ x: 'max-content' }}
         dataSource={data?.items ?? []}
         rowSelection={
           isStaffUi
