@@ -180,6 +180,7 @@ model User {
 
   cartridgeRequestsCreated   CartridgeRequest[] @relation("CartridgeCreatedBy")
   cartridgeRequestsCollected CartridgeRequest[] @relation("CartridgeCollectedBy")
+  cartridgeRequestsArrived   CartridgeRequest[] @relation("CartridgeArrivedBy")
   cartridgeReportsCreated    CartridgeReport[]  @relation("CartridgeReportCreatedBy")
   cartridgeReportsClosed     CartridgeReport[]  @relation("CartridgeReportClosedBy")
   refillEventsCreated        RefillEvent[]      @relation("RefillEventCreatedBy")
@@ -526,6 +527,12 @@ model CartridgeRequest {
   collectedById String?
   collectedBy   User?     @relation("CartridgeCollectedBy", fields: [collectedById], references: [id], onDelete: SetNull)
   collectedAt   DateTime?
+
+  // Отметка сканером при физическом возврате картриджа с заправки (см. план, статус SENT,
+  // до закрытия отчёта). Информационная — не блокирует report.close().
+  arrivedById String?
+  arrivedBy   User?     @relation("CartridgeArrivedBy", fields: [arrivedById], references: [id], onDelete: SetNull)
+  arrivedAt   DateTime?
 
   reportId String?
   report   CartridgeReport? @relation(fields: [reportId], references: [id], onDelete: SetNull)

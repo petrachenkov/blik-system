@@ -86,6 +86,14 @@ export function CartridgeReportsPage() {
             { title: '№', dataIndex: 'number' },
             { title: 'Картриджей', render: (_, r) => r._count.requests },
             {
+              title: 'Прибыло с заправки',
+              render: (_, r) => (
+                <Tag color={r.arrivedCount === r._count.requests ? 'green' : 'default'}>
+                  {r.arrivedCount} / {r._count.requests}
+                </Tag>
+              ),
+            },
+            {
               title: 'Статус',
               render: (_, r) => <Tag color={CARTRIDGE_REPORT_STATUS_COLORS[r.status]}>{CARTRIDGE_REPORT_STATUS_LABELS[r.status]}</Tag>,
             },

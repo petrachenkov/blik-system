@@ -29,6 +29,7 @@ import {
   SearchOutlined,
   BellOutlined,
   MessageOutlined,
+  QrcodeOutlined,
 } from '@ant-design/icons';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
@@ -128,11 +129,31 @@ export function AppLayout() {
       ? [{ key: '/calendar', icon: <CalendarOutlined />, label: 'Календарь' }]
       : []),
     { key: '/tickets/new', icon: <PlusOutlined />, label: 'Новая заявка' },
-    { key: '/cartridges', icon: <PrinterOutlined />, label: 'Картриджи' },
     // База знаний — все, кто реально решает заявки (сисадмин + практикант).
     ...(isStaffRole(user.role)
       ? [{ key: '/knowledge', icon: <ReadOutlined />, label: 'База знаний' }]
       : []),
+    // Группа "Картриджи" — вне ADMIN-блока ниже, т.к. заявку (/cartridges) подаёт любой
+    // преподаватель, а приём с заправки сканером — сисадмин+практикант (см. план "Печать
+    // этикеток картриджей"); остальные три пункта внутри — по-прежнему только сисадмину.
+    {
+      key: 'group-cartridges',
+      type: 'group' as const,
+      label: 'Картриджи',
+      children: [
+        { key: '/cartridges', icon: <PrinterOutlined />, label: 'Заявки' },
+        ...(isStaffRole(user.role)
+          ? [{ key: '/admin/cartridge-arrival', icon: <QrcodeOutlined />, label: 'Приём с заправки (сканер)' }]
+          : []),
+        ...(user.role === 'ADMIN'
+          ? [
+              { key: '/admin/cartridge-reports', icon: <FileExcelOutlined />, label: 'Отчёты' },
+              { key: '/admin/cartridge-archive', icon: <InboxOutlined />, label: 'Архив заправленных' },
+              { key: '/admin/refill-events', icon: <CalendarOutlined />, label: 'Плановые заправки' },
+            ]
+          : []),
+      ],
+    },
     ...(user.role === 'ADMIN'
       ? [
           {
@@ -147,16 +168,6 @@ export function AppLayout() {
               { key: '/admin/sla', icon: <ClockCircleOutlined />, label: 'SLA' },
               { key: '/admin/text-snippets', icon: <FileTextOutlined />, label: 'Шаблоны текста' },
               { key: '/admin/ticket-archive', icon: <InboxOutlined />, label: 'Архив заявок' },
-            ],
-          },
-          {
-            key: 'group-cartridges',
-            type: 'group' as const,
-            label: 'Картриджи',
-            children: [
-              { key: '/admin/cartridge-reports', icon: <FileExcelOutlined />, label: 'Отчёты' },
-              { key: '/admin/cartridge-archive', icon: <InboxOutlined />, label: 'Архив заправленных' },
-              { key: '/admin/refill-events', icon: <CalendarOutlined />, label: 'Плановые заправки' },
             ],
           },
           {

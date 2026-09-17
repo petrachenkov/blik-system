@@ -155,6 +155,8 @@ export interface CartridgeRequest {
   createdBy: TicketRef;
   collectedBy: TicketRef | null;
   collectedAt: string | null;
+  arrivedBy: TicketRef | null;
+  arrivedAt: string | null;
   reportId: string | null;
   report: { id: string; number: string } | null;
   filledAt: string | null;
@@ -180,6 +182,7 @@ export interface CartridgeReport {
   filename: string;
   createdAt: string;
   _count: { requests: number };
+  arrivedCount: number;
 }
 
 export interface RefillEvent {

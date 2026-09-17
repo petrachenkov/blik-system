@@ -14,6 +14,7 @@ import { CategoriesPage } from '../features/admin/CategoriesPage';
 import { LocationsPage } from '../features/admin/LocationsPage';
 import { SlaConfigPage } from '../features/admin/SlaConfigPage';
 import { CartridgeReportsPage } from '../features/admin/CartridgeReportsPage';
+import { CartridgeArrivalScanPage } from '../features/admin/CartridgeArrivalScanPage';
 import { CartridgeArchivePage } from '../features/admin/CartridgeArchivePage';
 import { RefillEventsPage } from '../features/admin/RefillEventsPage';
 import { BroadcastNotificationPage } from '../features/admin/BroadcastNotificationPage';
@@ -70,6 +71,7 @@ export function App() {
 
           <Route element={<ProtectedRoute allowedRoles={['ADMIN', 'INTERN']} />}>
             <Route path="/knowledge" element={<KnowledgeBasePage />} />
+            <Route path="/admin/cartridge-arrival" element={<CartridgeArrivalScanPage />} />
           </Route>
 
           <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>

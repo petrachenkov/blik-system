@@ -1,11 +1,17 @@
 import { Alert, Button, Card, Form, Popconfirm, Select, Space, Steps, Table, Tag, Typography, App as AntdApp, theme } from 'antd';
-import { EnvironmentOutlined, InfoCircleOutlined, NumberOutlined, SendOutlined, TagOutlined } from '@ant-design/icons';
+import { DownloadOutlined, EnvironmentOutlined, InfoCircleOutlined, NumberOutlined, SendOutlined, TagOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import dayjs from 'dayjs';
 import { useAuth } from '../../shared/auth/AuthContext';
 import { fetchLocations } from '../../shared/api/catalogs';
-import { cancelCartridgeRequest, collectCartridgeRequest, createCartridgeRequest, fetchCartridges } from '../../shared/api/cartridges';
+import {
+  cancelCartridgeRequest,
+  collectCartridgeRequest,
+  createCartridgeRequest,
+  downloadCartridgeLabels,
+  fetchCartridges,
+} from '../../shared/api/cartridges';
 import { fetchRefillEvents } from '../../shared/api/refillEvents';
 import { extractErrorMessage } from '../../shared/api/errors';
 import { CARTRIDGE_STATUS_COLORS, CARTRIDGE_STATUS_LABELS, isStaffRole } from '../../shared/labels';
@@ -25,6 +31,7 @@ export function CartridgesPage() {
   const queryClient = useQueryClient();
   const [form] = Form.useForm<FormValues>();
   const [status, setStatus] = useState<CartridgeRequestStatus | undefined>(undefined);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const isStaff = user ? isStaffRole(user.role) : false;
 
   const { data: locations = [] } = useQuery({ queryKey: ['locations'], queryFn: () => fetchLocations() });
@@ -45,10 +52,15 @@ export function CartridgesPage() {
         title: 'Заявка подана',
         content: (
           <div style={{ textAlign: 'center', padding: '12px 0' }}>
-            <Typography.Paragraph>Наклейте этот код на картридж:</Typography.Paragraph>
+            <Typography.Paragraph>Ваш код:</Typography.Paragraph>
             <Typography.Title level={1} style={{ letterSpacing: 8, margin: 0 }}>
               {request.code}
             </Typography.Title>
+            <Typography.Paragraph type="secondary" style={{ marginTop: 12 }}>
+              Наклейку с этим кодом сотрудник техподдержки напечатает и наклеит сам, когда
+              придёт забрать картридж — вам ничего писать и клеить не нужно, просто сверьте
+              код при передаче.
+            </Typography.Paragraph>
           </div>
         ),
       });
@@ -66,6 +78,15 @@ export function CartridgesPage() {
     mutationFn: (id: string) => cancelCartridgeRequest(id),
     onSuccess: () => { void invalidate(); message.success('Заявка отменена'); },
     onError: (error) => message.error(extractErrorMessage(error, 'Не удалось отменить заявку')),
+  });
+
+  // Печать этикеток (см. план "Печать этикеток картриджей") — Label Expert сам не умеет
+  // выбирать строки для печати, печатает всё, что видит в файле, поэтому выбор "что
+  // печатать" делается здесь — галочками в этой таблице, один шаг: выделил → скачал.
+  const downloadLabelsMutation = useMutation({
+    mutationFn: () => downloadCartridgeLabels(selectedIds),
+    onSuccess: () => setSelectedIds([]),
+    onError: (error) => message.error(extractErrorMessage(error, 'Не удалось скачать файл этикеток')),
   });
 
   const nearestEvent = refillEvents
@@ -142,12 +163,17 @@ export function CartridgesPage() {
               <Typography.Title level={5} style={{ margin: '0 0 14px', display: 'flex', alignItems: 'center', gap: 8, color: token.colorPrimaryText }}>
                 <InfoCircleOutlined /> Как сдать картридж на заправку
               </Typography.Title>
+              {/* Вертикально всегда, не только на узких экранах — третий шаг заметно длиннее
+                  первых двух, и в горизонтальной раскладке при ограниченной ширине блока
+                  (maxWidth: 640 у обёртки) слова в нём рвутся посередине независимо от
+                  ширины самого экрана (см. фидбэк со скриншотом). */}
               <Steps
                 current={0}
+                direction="vertical"
                 items={[
                   { title: 'Выберите кабинет', icon: <EnvironmentOutlined /> },
                   { title: 'Получите код', icon: <NumberOutlined /> },
-                  { title: 'Наклейте код на картридж', icon: <TagOutlined /> },
+                  { title: 'Сотрудник заберёт картридж и сам наклеит код', icon: <TagOutlined /> },
                 ]}
               />
             </div>
@@ -169,11 +195,38 @@ export function CartridgesPage() {
           </div>
         )}
 
+        {isStaff && selectedIds.length > 0 && (
+          <Space style={{ marginBottom: 12 }}>
+            <Typography.Text>Выбрано: {selectedIds.length}</Typography.Text>
+            <Button
+              size="small"
+              type="primary"
+              icon={<DownloadOutlined />}
+              loading={downloadLabelsMutation.isPending}
+              onClick={() => downloadLabelsMutation.mutate()}
+            >
+              Скачать этикетки
+            </Button>
+            <Button size="small" type="text" onClick={() => setSelectedIds([])}>
+              Снять выделение
+            </Button>
+          </Space>
+        )}
+
         <Table<CartridgeRequest>
           rowKey="id"
           loading={isLoading}
           dataSource={data?.items ?? []}
           pagination={{ pageSize: 20, total: data?.total ?? 0 }}
+          rowSelection={
+            isStaff
+              ? {
+                  selectedRowKeys: selectedIds,
+                  onChange: (keys) => setSelectedIds(keys as string[]),
+                  getCheckboxProps: (r) => ({ disabled: r.status !== 'NEW' }),
+                }
+              : undefined
+          }
           columns={[
             { title: '№', dataIndex: 'number', width: 130 },
             {

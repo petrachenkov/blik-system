@@ -29,17 +29,37 @@ export class CartridgeReportsService {
     return `REPORT-${nextval.toString().padStart(6, '0')}`;
   }
 
-  findAll() {
-    return this.prisma.cartridgeReport.findMany({
+  /**
+   * Сколько заявок отчёта уже отсканировано как прибывшие с заправки (см. план "Печать
+   * этикеток картриджей", часть B) — только индикатор готовности, ничего не блокирует.
+   * Prisma не даёт два по-разному отфильтрованных `_count` одной связи под разными именами
+   * (см. REPORT_INCLUDE выше — там только общий `requests`), поэтому здесь отдельный
+   * groupBy-запрос вместо `include`.
+   */
+  private async getArrivedCounts(reportIds: string[]): Promise<Map<string, number>> {
+    if (reportIds.length === 0) return new Map();
+    const rows = await this.prisma.cartridgeRequest.groupBy({
+      by: ['reportId'],
+      where: { reportId: { in: reportIds }, arrivedAt: { not: null } },
+      _count: { _all: true },
+    });
+    return new Map(rows.filter((r) => r.reportId !== null).map((r) => [r.reportId as string, r._count._all]));
+  }
+
+  async findAll() {
+    const reports = await this.prisma.cartridgeReport.findMany({
       include: REPORT_INCLUDE,
       orderBy: { createdAt: 'desc' },
     });
+    const arrivedByReport = await this.getArrivedCounts(reports.map((r) => r.id));
+    return reports.map((r) => ({ ...r, arrivedCount: arrivedByReport.get(r.id) ?? 0 }));
   }
 
   async findOneOrThrow(id: string) {
     const report = await this.prisma.cartridgeReport.findUnique({ where: { id }, include: REPORT_INCLUDE });
     if (!report) throw new NotFoundException('Отчёт не найден');
-    return report;
+    const arrivedByReport = await this.getArrivedCounts([id]);
+    return { ...report, arrivedCount: arrivedByReport.get(id) ?? 0 };
   }
 
   async generate(user: AuthenticatedUser, dto: GenerateCartridgeReportDto) {

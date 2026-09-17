@@ -2,6 +2,7 @@ import { BadRequestException, ForbiddenException, Injectable, NotFoundException 
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CartridgeRequestStatus, UserRole } from '../../generated/prisma/index.js';
 import { generateUniqueCartridgeCode } from './cartridge-code.util.js';
+import { buildCartridgeLabelWorkbook } from './cartridge-label-excel.builder.js';
 import type { AuthenticatedUser } from '../common/types/authenticated-user.js';
 import type { CreateCartridgeRequestDto } from './dto/create-cartridge-request.dto.js';
 import type { FindCartridgesQueryDto } from './dto/find-cartridges-query.dto.js';
@@ -10,6 +11,7 @@ const CARTRIDGE_INCLUDE = {
   location: true,
   createdBy: { select: { id: true, fullName: true, username: true } },
   collectedBy: { select: { id: true, fullName: true, username: true } },
+  arrivedBy: { select: { id: true, fullName: true, username: true } },
   report: { select: { id: true, number: true } },
 } as const;
 
@@ -101,6 +103,59 @@ export class CartridgesService {
     return this.prisma.cartridgeRequest.update({
       where: { id },
       data: { status: CartridgeRequestStatus.COLLECTED, collectedById: user.id, collectedAt: new Date() },
+      include: CARTRIDGE_INCLUDE,
+    });
+  }
+
+  /**
+   * Excel-файл этикеток для выбранных заявок (см. план "Печать этикеток картриджей") —
+   * Label Expert подключает его как "базу данных" (сам он строки для печати не выбирает,
+   * поэтому выбор — здесь, галочками в Blik; изначально была отдельная persistent-очередь
+   * с полем `labelQueuedAt`, но по фидбэку упростили до одного шага: выделил → скачал —
+   * без промежуточного состояния "стоит в очереди", которое нужно было отдельно снимать).
+   * Печатать можно только заявки в статусе NEW — не найденные/чужого статуса id молча
+   * игнорируются, а не считаются ошибкой (тот же идемпотентный стиль, что был у постановки
+   * в очередь).
+   */
+  async exportLabels(ids: string[]): Promise<Buffer> {
+    const requests = await this.prisma.cartridgeRequest.findMany({
+      where: { id: { in: ids }, status: CartridgeRequestStatus.NEW },
+      include: { location: true, createdBy: { select: { fullName: true } } },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    return buildCartridgeLabelWorkbook(
+      requests.map((r) => ({
+        number: r.number,
+        code: r.code,
+        room: `${r.location.building}, каб. ${r.location.room}`,
+        teacherFullName: r.createdBy.fullName,
+        createdAt: r.createdAt,
+      })),
+    );
+  }
+
+  /**
+   * Сканирование QR на этикетке при физическом возврате картриджа с заправки (см. план,
+   * часть B) — заявка должна быть в статусе SENT (включена в сформированный отчёт, ещё не
+   * закрыт). `code` уникален среди активных статусов (см. cartridge-code.util.ts), поэтому
+   * однозначно определяет заявку и на этом этапе её жизненного цикла.
+   */
+  async scanArrival(user: AuthenticatedUser, code: string) {
+    const request = await this.prisma.cartridgeRequest.findFirst({
+      where: { code, status: CartridgeRequestStatus.SENT },
+      include: CARTRIDGE_INCLUDE,
+    });
+    if (!request) {
+      throw new NotFoundException('Нет отправленной на заправку заявки с таким кодом');
+    }
+    if (request.arrivedAt) {
+      throw new BadRequestException('Эта заявка уже отмечена как прибывшая');
+    }
+
+    return this.prisma.cartridgeRequest.update({
+      where: { id: request.id },
+      data: { arrivedAt: new Date(), arrivedById: user.id },
       include: CARTRIDGE_INCLUDE,
     });
   }
