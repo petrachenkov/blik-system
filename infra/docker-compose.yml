@@ -8,8 +8,9 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-blik}
     volumes:
       - pgdata:/var/lib/postgresql/data
-    ports:
-      - '5432:5432'
+    # Порт наружу контейнера не публикуем — снаружи не нужен, backend обращается к postgres
+    # внутри docker-сети по имени сервиса (см. DATABASE_URL ниже). Публикация 5432:5432 на
+    # проде оставляла бы Postgres доступным из интернета всем, кто пробьётся мимо Ideco.
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-blik}']
       interval: 5s
