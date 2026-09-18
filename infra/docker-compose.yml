@@ -88,10 +88,21 @@ services:
     ports:
       - '80:80'
       - '443:443'
+    # configs вместо bind-mount одиночного файла — при деплое git-стека в Portainer bind-mount
+    # `./Caddyfile:/etc/caddy/Caddyfile` иногда ловит баг Docker: если путь на хосте почему-то
+    # не резолвится к файлу в момент старта контейнера, движок молча создаёт на его месте
+    # директорию и валится с "not a directory" при монтировании поверх файла в образе. configs
+    # читает содержимое файла на этапе `compose up`, а не полагается на путь во время монтирования.
+    configs:
+      - source: caddyfile
+        target: /etc/caddy/Caddyfile
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
+
+configs:
+  caddyfile:
+    file: ./Caddyfile
 
 volumes:
   pgdata:
