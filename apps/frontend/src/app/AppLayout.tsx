@@ -1,4 +1,4 @@
-import { Alert, Button, Layout, Menu, Space, Tour, Typography, Avatar, Dropdown, theme } from 'antd';
+import { Alert, Button, Grid, Layout, Menu, Space, Tour, Typography, Avatar, Dropdown, theme } from 'antd';
 import type { TourProps } from 'antd';
 import {
   UserOutlined,
@@ -9,6 +9,7 @@ import {
   EnvironmentOutlined,
   ClockCircleOutlined,
   LogoutOutlined,
+  MenuOutlined,
   PrinterOutlined,
   FileExcelOutlined,
   FileTextOutlined,
@@ -81,6 +82,18 @@ export function AppLayout() {
   // (не нужен отдельный эффект с синхронным setState при загрузке).
   const [tourOpen, setTourOpen] = useState(() => Boolean(user && !user.onboardingCompletedAt && onboardingTourEnabled));
   const [paletteOpen, setPaletteOpen] = useState(false);
+  // Мобильная вёрстка шапки (см. фидбэк со скриншотом — на узком экране текст с именем/ролью
+  // переносился и вылезал за пределы фиксированной высоты Header, а стандартный триггер
+  // сворачивания Sider при collapsedWidth=0 рисуется отдельным "плавающим" квадратом поверх
+  // контента). Управляем collapsed сами и рисуем свою кнопку-гамбургер внутри Header.
+  const [collapsed, setCollapsed] = useState(false);
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.lg;
+  // У преподавателя (не staff) в меню всего 3 пункта — на мобильном выезжающий Sider ради
+  // них избыточен (и был источником отдельных багов), вместо него — нижняя панель вкладок,
+  // привычный мобильный паттерн (см. фидбэк со скриншотом).
+  const isTeacher = user ? !isStaffRole(user.role) : false;
+  const showBottomNav = isMobile && isTeacher;
   const siderRef = useRef<HTMLDivElement>(null);
   const bellRef = useRef<HTMLSpanElement>(null);
   const themeRef = useRef<HTMLSpanElement>(null);
@@ -212,85 +225,174 @@ export function AppLayout() {
       : []),
   ];
 
+  const bottomNavItems = [
+    { key: '/tickets', icon: <UnorderedListOutlined />, label: 'Заявки' },
+    { key: '/tickets/new', icon: <PlusOutlined />, label: 'Новая заявка' },
+    { key: '/cartridges', icon: <PrinterOutlined />, label: 'Картриджи' },
+  ];
+
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      <Sider ref={siderRef} breakpoint="lg" collapsedWidth="0" style={{ background: SIDER_BG }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#fff', fontSize: 20, fontWeight: 700, padding: '16px 20px' }}>
-          <img src="/logo-blue.png" alt="" style={{ width: 32, height: 32, borderRadius: '50%', background: '#fff' }} />
-          Blik
+      {showBottomNav ? (
+        // Нижняя панель вместо Sider — тот же ref, чтобы онбординг-тур по-прежнему имел
+        // валидную цель для первого шага.
+        <div
+          ref={siderRef}
+          style={{
+            position: 'fixed',
+            insetInline: 0,
+            bottom: 0,
+            zIndex: 100,
+            display: 'flex',
+            background: SIDER_BG,
+            boxShadow: '0 -1px 8px rgba(0,0,0,0.3)',
+          }}
+        >
+          {bottomNavItems.map((item) => {
+            const active = location.pathname === item.key;
+            return (
+              <button
+                key={item.key}
+                onClick={() => navigate(item.key)}
+                style={{
+                  flex: 1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: 2,
+                  padding: '8px 0',
+                  border: 'none',
+                  background: 'transparent',
+                  color: active ? '#fff' : 'rgba(255,255,255,0.65)',
+                  fontSize: 11,
+                }}
+              >
+                <span style={{ fontSize: 20 }}>{item.icon}</span>
+                {item.label}
+              </button>
+            );
+          })}
         </div>
-        <Menu
-          theme="dark"
-          mode="inline"
-          style={{ background: SIDER_BG }}
-          selectedKeys={[location.pathname]}
-          items={menuItems}
-          onClick={({ key }) => navigate(key)}
-        />
-      </Sider>
+      ) : (
+        <>
+          {/* Затемнение позади выезжающего меню на мобильном — тап закрывает меню. На десктопе
+              Sider всегда в нормальном потоке (permanent), затемнение не нужно и не рендерится. */}
+          {isMobile && !collapsed && (
+            <div
+              onClick={() => setCollapsed(true)}
+              style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 99 }}
+            />
+          )}
+          <Sider
+            ref={siderRef}
+            breakpoint="lg"
+            collapsedWidth="0"
+            trigger={null}
+            collapsed={collapsed}
+            onBreakpoint={setCollapsed}
+            style={{
+              background: SIDER_BG,
+              // На мобильном — фиксированный оверлей поверх всего (включая Header), а не
+              // обычный flex-child, который раньше просто сжимал Content вместо содержимого
+              // (см. фидбэк со скриншотом — текст переносился по буквам в узкую полоску).
+              ...(isMobile ? { position: 'fixed', insetInlineStart: 0, top: 0, bottom: 0, zIndex: 100 } : {}),
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#fff', fontSize: 20, fontWeight: 700, padding: '16px 20px' }}>
+              <img src="/logo-blue.png" alt="" style={{ width: 32, height: 32, borderRadius: '50%', background: '#fff' }} />
+              Blik
+            </div>
+            <Menu
+              theme="dark"
+              mode="inline"
+              style={{ background: SIDER_BG }}
+              selectedKeys={[location.pathname]}
+              items={menuItems}
+              onClick={({ key }) => {
+                navigate(key);
+                if (isMobile) setCollapsed(true);
+              }}
+            />
+          </Sider>
+        </>
+      )}
       <Layout>
         <Header
           style={{
             background: token.colorBgContainer,
             display: 'flex',
-            justifyContent: 'flex-end',
+            justifyContent: 'space-between',
             alignItems: 'center',
             gap: 8,
-            padding: '0 24px',
+            padding: isMobile ? '0 8px' : '0 24px',
             height: 64,
             lineHeight: 'normal',
             boxShadow: `0 1px 4px ${token.colorBorderSecondary}`,
             zIndex: 1,
           }}
         >
-          <Button
-            type="text"
-            icon={<SearchOutlined />}
-            onClick={() => setPaletteOpen(true)}
-            title="Поиск (Ctrl/Cmd + K)"
-            style={{ color: token.colorTextSecondary }}
-          >
-            <Typography.Text type="secondary" style={{ fontSize: 12 }}>⌘K</Typography.Text>
-          </Button>
-          <Button type="text" shape="circle" icon={<QuestionCircleOutlined />} title="Показать обзор снова" onClick={() => setTourOpen(true)} />
-          <span ref={themeRef} style={{ display: 'inline-flex' }}>
-            <ThemeToggle />
-          </span>
-          <span ref={bellRef} style={{ display: 'inline-flex' }}>
-            <NotificationBell />
-          </span>
-          <Dropdown
-            menu={{
-              items: [
-                {
-                  key: 'notif-settings',
-                  icon: <BellOutlined />,
-                  label: 'Настройки уведомлений',
-                  onClick: () => navigate('/settings/notifications'),
-                },
-                {
-                  key: 'max-settings',
-                  icon: <MessageOutlined />,
-                  label: 'MAX',
-                  onClick: () => navigate('/settings/max'),
-                },
-                { type: 'divider' },
-                { key: 'logout', icon: <LogoutOutlined />, label: 'Выйти', onClick: () => { void logout().then(() => navigate('/login')); } },
-              ],
-            }}
-          >
-            <Space style={{ cursor: 'pointer', marginInlineStart: 4 }}>
-              <Avatar style={{ backgroundColor: ROLE_COLORS[user.role] }} icon={<UserOutlined />} />
-              <Typography.Text>
-                {user.fullName} <Typography.Text type="secondary">· {ROLE_LABELS[user.role]}</Typography.Text>
-              </Typography.Text>
-            </Space>
-          </Dropdown>
+          {isMobile && !showBottomNav ? (
+            <Button type="text" icon={<MenuOutlined />} onClick={() => setCollapsed((c) => !c)} title="Меню" />
+          ) : (
+            <span />
+          )}
+          <Space size={isMobile ? 0 : 8} style={{ flexShrink: 0 }}>
+            <Button
+              type="text"
+              icon={<SearchOutlined />}
+              onClick={() => setPaletteOpen(true)}
+              title="Поиск (Ctrl/Cmd + K)"
+              style={{ color: token.colorTextSecondary }}
+            >
+              {!isMobile && <Typography.Text type="secondary" style={{ fontSize: 12 }}>⌘K</Typography.Text>}
+            </Button>
+            {!isMobile && (
+              <Button type="text" shape="circle" icon={<QuestionCircleOutlined />} title="Показать обзор снова" onClick={() => setTourOpen(true)} />
+            )}
+            <span ref={themeRef} style={{ display: 'inline-flex' }}>
+              <ThemeToggle />
+            </span>
+            <span ref={bellRef} style={{ display: 'inline-flex' }}>
+              <NotificationBell />
+            </span>
+            <Dropdown
+              menu={{
+                items: [
+                  {
+                    key: 'notif-settings',
+                    icon: <BellOutlined />,
+                    label: 'Настройки уведомлений',
+                    onClick: () => navigate('/settings/notifications'),
+                  },
+                  {
+                    key: 'max-settings',
+                    icon: <MessageOutlined />,
+                    label: 'MAX',
+                    onClick: () => navigate('/settings/max'),
+                  },
+                  { type: 'divider' },
+                  { key: 'logout', icon: <LogoutOutlined />, label: 'Выйти', onClick: () => { void logout().then(() => navigate('/login')); } },
+                ],
+              }}
+            >
+              <Space style={{ cursor: 'pointer', marginInlineStart: 4 }}>
+                <Avatar style={{ backgroundColor: ROLE_COLORS[user.role] }} icon={<UserOutlined />} />
+                {/* Имя/роль скрываем на узких экранах — не помещались в шапку и переносились
+                    поверх контента (см. фидбэк со скриншотом); имя всё ещё видно по клику
+                    на аватар — не критичная потеря, дропдаун и так открывается по тапу. */}
+                {!isMobile && (
+                  <Typography.Text>
+                    {user.fullName} <Typography.Text type="secondary">· {ROLE_LABELS[user.role]}</Typography.Text>
+                  </Typography.Text>
+                )}
+              </Space>
+            </Dropdown>
+          </Space>
         </Header>
         {/* Небольшой отступ, а не 0, сохранён намеренно: у карточек внутри страниц есть Row
             с gutter (отрицательные поля grid-системы) — без этого запаса появляется
             горизонтальный скролл на всю ширину экрана. */}
-        <Content style={{ padding: 16 }}>
+        <Content style={{ padding: 16, paddingBottom: showBottomNav ? 72 : 16 }}>
           {maintenance?.enabled && (
             <Alert
               type="error"
