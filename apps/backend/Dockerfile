@@ -21,6 +21,10 @@ RUN npm install --omit=dev --legacy-peer-deps
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/generated ./generated
 COPY --from=build /app/src/prisma/schema.prisma ./src/prisma/schema.prisma
+# Без этого `prisma migrate deploy` в CMD ниже молча находит пустую папку миграций и ничего
+# не применяет ("No migration found in prisma/migrations") — на уже существующей БД это
+# незаметно, а на по-настоящему чистой базе (первый прод-деплой) остаётся без единой таблицы.
+COPY --from=build /app/src/prisma/migrations ./src/prisma/migrations
 
 RUN mkdir -p /app/uploads
 VOLUME ["/app/uploads"]
