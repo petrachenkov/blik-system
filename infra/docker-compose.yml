@@ -88,21 +88,27 @@ services:
     ports:
       - '80:80'
       - '443:443'
-    # configs вместо bind-mount одиночного файла — при деплое git-стека в Portainer bind-mount
-    # `./Caddyfile:/etc/caddy/Caddyfile` иногда ловит баг Docker: если путь на хосте почему-то
-    # не резолвится к файлу в момент старта контейнера, движок молча создаёт на его месте
-    # директорию и валится с "not a directory" при монтировании поверх файла в образе. configs
-    # читает содержимое файла на этапе `compose up`, а не полагается на путь во время монтирования.
-    configs:
-      - source: caddyfile
-        target: /etc/caddy/Caddyfile
+    # Caddyfile пишется прямо внутри контейнера при старте, не монтируется с хоста. И bind-mount
+    # (./Caddyfile:/etc/caddy/Caddyfile), и compose `configs:` (для обычного docker compose, не
+    # Swarm, реализован под капотом тем же bind-mount'ом) на Portainer-деплое из git-репозитория
+    # одинаково не находили файл на хосте после клонирования, хотя он в репозитории точно есть —
+    # со стороны Portainer причину выяснить не удалось, поэтому просто убрали зависимость от файла
+    # на хосте целиком. `{$DOMAIN}` внутри — не shell-переменная (heredoc с 'CADDYFILE' в кавычках,
+    # без раскрытия), это синтаксис самого Caddy — он подставит его сам из своего DOMAIN ниже,
+    # так же, как раньше при чтении смонтированного файла.
+    command:
+      - sh
+      - -c
+      - |
+        cat <<'CADDYFILE' > /etc/caddy/Caddyfile
+        {$$DOMAIN} {
+            reverse_proxy nginx:80
+        }
+        CADDYFILE
+        exec caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
     volumes:
       - caddy_data:/data
       - caddy_config:/config
-
-configs:
-  caddyfile:
-    file: ./Caddyfile
 
 volumes:
   pgdata:
