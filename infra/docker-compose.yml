@@ -24,10 +24,38 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    env_file:
-      - .env
+    # Явные переменные вместо env_file — при деплое из Portainer (Stacks → Repository) репозиторий
+    # клонируется с нуля, и физического infra/.env там нет (он и не должен быть в git). Portainer
+    # подставляет значения из своих Stack → Environment variables сюда же, через ${VAR} — тот же
+    # механизм, что и для DOMAIN у caddy ниже. Для локального docker compose up из infra/ ничего
+    # не меняется — тамошний infra/.env compose всё так же подхватывает сам, автоматически.
     environment:
+      NODE_ENV: production
+      PORT: ${PORT:-3000}
+      CORS_ORIGIN: ${CORS_ORIGIN}
       DATABASE_URL: postgresql://${POSTGRES_USER:-blik}:${POSTGRES_PASSWORD:-change-me}@postgres:5432/${POSTGRES_DB:-blik}?schema=public
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_ACCESS_TTL: ${JWT_ACCESS_TTL:-15m}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      JWT_REFRESH_TTL: ${JWT_REFRESH_TTL:-14d}
+      MASTER_USERNAME: ${MASTER_USERNAME}
+      MASTER_PASSWORD: ${MASTER_PASSWORD}
+      MASTER_FULL_NAME: ${MASTER_FULL_NAME:-Master Administrator}
+      SEED_TEST_ACCOUNTS: ${SEED_TEST_ACCOUNTS:-false}
+      LDAP_URL: ${LDAP_URL}
+      LDAP_BIND_DN: ${LDAP_BIND_DN}
+      LDAP_BIND_PASSWORD: ${LDAP_BIND_PASSWORD}
+      LDAP_BASE_DN: ${LDAP_BASE_DN}
+      LDAP_STAFF_GROUP_DN: ${LDAP_STAFF_GROUP_DN}
+      LDAP_TLS_REJECT_UNAUTHORIZED: ${LDAP_TLS_REJECT_UNAUTHORIZED:-true}
+      LDAP_TLS_CA_PATH: ${LDAP_TLS_CA_PATH:-}
+      UPLOADS_DIR: ${UPLOADS_DIR:-/app/uploads}
+      MAX_UPLOAD_SIZE_MB: ${MAX_UPLOAD_SIZE_MB:-25}
+      MAX_VIDEO_UPLOAD_SIZE_MB: ${MAX_VIDEO_UPLOAD_SIZE_MB:-200}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:admin@example.com}
+      MAX_BOT_TOKEN: ${MAX_BOT_TOKEN:-}
     volumes:
       - uploads:/app/uploads
       # Сертификат внутреннего CA колледжа для ldaps:// (см. LDAP_TLS_CA_PATH в .env.example) —
