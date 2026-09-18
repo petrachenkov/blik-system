@@ -12,6 +12,7 @@ import {
   Divider,
   Empty,
   Form,
+  Grid,
   Input,
   Mentions,
   Popconfirm,
@@ -21,6 +22,7 @@ import {
   Space,
   Tag,
   Timeline,
+  Tooltip,
   Typography,
   Upload,
   theme,
@@ -120,6 +122,7 @@ export function TicketDetailPage() {
   const navigate = useNavigate();
   const { message } = AntdApp.useApp();
   const { token } = theme.useToken();
+  const isMobile = !Grid.useBreakpoint().lg;
   const queryClient = useQueryClient();
   const [commentBody, setCommentBody] = useState('');
   const [commentFiles, setCommentFiles] = useState<UploadFile[]>([]);
@@ -308,9 +311,17 @@ export function TicketDetailPage() {
           }
           extra={
             <Space wrap size="middle">
-              <Button icon={<FilePdfOutlined />} loading={reportMutation.isPending} onClick={() => reportMutation.mutate()}>
-                Справка по заявке
-              </Button>
+              {/* На мобильном — только иконка с тултипом вместо иконки+подписи, компактнее
+                  рядом с номером заявки и тегом статуса (см. фидбэк). */}
+              <Tooltip title={isMobile ? 'Справка по заявке' : undefined}>
+                <Button
+                  icon={<FilePdfOutlined />}
+                  loading={reportMutation.isPending}
+                  onClick={() => reportMutation.mutate()}
+                >
+                  {!isMobile && 'Справка по заявке'}
+                </Button>
+              </Tooltip>
               {user?.isMaster && (
                 <Popconfirm
                   title={`Удалить заявку ${ticket.number}?`}
