@@ -15,6 +15,15 @@ ENV NODE_ENV=production
 # заново запускать `prisma generate` через postinstall (там ещё и schema.prisma не скопирована).
 ENV PRISMA_SKIP_POSTINSTALL_GENERATE=true
 
+# Без явного TZ контейнер живёт в UTC, а весь код, что сравнивает время через локальные методы
+# Date (рабочие часы визитов, тихие часы уведомлений и т.д. — см. working-hours.ts), считает,
+# что "локальное время" сервера совпадает с местным временем колледжа. Из-за этого расхождения
+# почти любое время визита ошибочно попадало под "вне рабочих часов" (см. фидбэк — 8:00 и 9:00
+# по местному оба отклонялись). tzdata нужен отдельно — в Alpine он не входит по умолчанию,
+# без него Node не сможет применить TZ к конкретной зоне.
+RUN apk add --no-cache tzdata
+ENV TZ=Europe/Moscow
+
 COPY package.json package-lock.json* ./
 RUN npm install --omit=dev --legacy-peer-deps
 
