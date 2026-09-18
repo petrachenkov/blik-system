@@ -150,7 +150,9 @@ export function TicketsListPage() {
       // min-height, а не паддинг) — нормально смотрится в одну строку, но когда title/extra
       // переносятся на несколько строк на мобильном (Space wrap), первая строка оказывается
       // прижата к верхней границе карточки (см. фидбэк — "нет отступов от границ до полей").
-      styles={{ header: { paddingBlock: 16 } }}
+      // title у antd Card по умолчанию white-space: nowrap + text-overflow: ellipsis — перебивает
+      // Space wrap внутри (см. тот же фикс и его причину в TicketDetailPage.tsx).
+      styles={{ header: { paddingBlock: 16 }, title: { whiteSpace: 'normal', overflow: 'visible' } }}
       title={
         <Space wrap size="middle">
           {title}

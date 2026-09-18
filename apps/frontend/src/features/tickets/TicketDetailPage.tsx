@@ -290,10 +290,17 @@ export function TicketDetailPage() {
     <Row gutter={[16, 16]}>
       <Col xs={24} lg={16}>
         <Card
-          styles={{ header: { paddingBlock: 16 } }}
+          // title у antd Card по умолчанию white-space: nowrap + text-overflow: ellipsis
+          // (расчёт на однострочный заголовок) — перебивает Space wrap внутри, из-за чего
+          // номер заявки обрезался многоточием вместо переноса тега статуса на новую строку
+          // (см. фидбэк со скриншотом, обведено оранжевым).
+          styles={{ header: { paddingBlock: 16 }, title: { whiteSpace: 'normal', overflow: 'visible' } }}
           title={
             <Space wrap size="middle">
-              <span>Заявка {ticket.number}</span>
+              {/* nowrap у самого номера — иначе "Заявка"/"BLIK-000001" разрывались на разные
+                  строки посередине (перенос между Space-элементами это не задевает, они
+                  всё равно переносятся по отдельности). */}
+              <span style={{ whiteSpace: 'nowrap' }}>Заявка {ticket.number}</span>
               <Tag color={STATUS_COLORS[ticket.status]}>{STATUS_LABELS[ticket.status]}</Tag>
               {isStaff && ticket.priority && <Tag color={PRIORITY_COLORS[ticket.priority]}>{PRIORITY_LABELS[ticket.priority]}</Tag>}
               {isStaff && (ticket.isResponseBreached || ticket.isResolutionBreached) && <Tag color="red">Просрочена</Tag>}
