@@ -389,10 +389,11 @@ export function AppLayout() {
             </Dropdown>
           </Space>
         </Header>
-        {/* Небольшой отступ, а не 0, сохранён намеренно: у карточек внутри страниц есть Row
-            с gutter (отрицательные поля grid-системы) — без этого запаса появляется
-            горизонтальный скролл на всю ширину экрана. */}
-        <Content style={{ padding: 16, paddingBottom: showBottomNav ? 72 : 16 }}>
+        {/* Без внешних отступов (по фидбэку) — у Row с gutter внутри страниц отрицательные
+            поля grid-системы, из-за которых появлялся горизонтальный скролл на всю ширину
+            экрана; вместо отступа-компенсации просто прячем этот бесполезный overflow.
+            paddingBottom оставлен — не декоративный, а место под нижнюю панель вкладок. */}
+        <Content style={{ padding: 0, overflowX: 'hidden', paddingBottom: showBottomNav ? 56 : 0 }}>
           {maintenance?.enabled && (
             <Alert
               type="error"
