@@ -218,6 +218,10 @@ export function CartridgesPage() {
           loading={isLoading}
           dataSource={data?.items ?? []}
           pagination={{ pageSize: 20, total: data?.total ?? 0 }}
+          // 6-7 колонок не помещаются на мобильном без этого — таблица просто раздвигала всю
+          // страницу вширь (см. фидбэк со скриншотом, "всё поехало"). Со scroll она остаётся
+          // в границах карточки и скроллится сама по себе горизонтально.
+          scroll={{ x: 'max-content' }}
           rowSelection={
             isStaff
               ? {

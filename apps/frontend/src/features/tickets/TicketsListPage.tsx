@@ -158,7 +158,10 @@ export function TicketsListPage() {
         </Space>
       }
       extra={
-        <Space wrap>
+        // size="middle" вместо дефолтного small — на мобильном контролы переносятся по одной
+        // на строку (Space wrap), и с 8px дефолтного зазора выглядели слишком плотно друг к
+        // другу (см. фидбэк со скриншотом).
+        <Space wrap size="middle">
           <Input.Search
             allowClear
             placeholder="Поиск по номеру, тексту, автору"
