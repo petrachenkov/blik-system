@@ -79,7 +79,11 @@ export function NotificationBell() {
         </Space>
       }
       content={
-        <div style={{ width: 360, maxHeight: 420, overflowY: 'auto' }}>
+        // Фиксированные 360px при placement="bottomRight" возле колокольчика у правого края
+        // шапки не помещались на узких экранах и обрезались слева (см. фидбэк со скриншотом) —
+        // 92vw почти не сокращал ширину (92% от 390px ≈ 359px, тот же результат), поэтому
+        // жёсткий потолок 320px + отступ по 12px с каждой стороны на совсем узких экранах.
+        <div style={{ width: 'min(320px, calc(100vw - 24px))', maxHeight: 420, overflowY: 'auto' }}>
           {notifications.length === 0 ? (
             <Empty description="Пока нет уведомлений" image={Empty.PRESENTED_IMAGE_SIMPLE} />
           ) : (

@@ -320,7 +320,10 @@ export function TicketDetailPage() {
             </Space>
           }
         >
-          <Descriptions column={2} bordered size="small" style={{ marginBottom: 16 }}>
+          {/* column={2} на узком экране всё равно рисовал 2 колонки label+value, сжимая
+              длинные значения (ФИО, локацию) до переноса по буквам (см. фидбэк со
+              скриншотом) — на мобильном каждая пара идёт отдельной строкой. */}
+          <Descriptions column={{ xs: 1, sm: 1, md: 2 }} bordered size="small" style={{ marginBottom: 16 }}>
             <Descriptions.Item label="Локация">{ticket.location.building}, каб. {ticket.location.room}{ticket.location.label ? ` (${ticket.location.label})` : ''}</Descriptions.Item>
             <Descriptions.Item label="Преподаватель">{ticket.createdBy.fullName}</Descriptions.Item>
             <Descriptions.Item label="Категория">{ticket.category?.name ?? <Typography.Text type="secondary">не задана</Typography.Text>}</Descriptions.Item>
