@@ -578,7 +578,12 @@ export function TicketDetailPage() {
                       icon={<UserOutlined />}
                     />
                     <div style={{ maxWidth: '78%' }}>
-                      <div style={{ display: 'flex', gap: 6, alignItems: 'baseline', flexDirection: staff ? 'row-reverse' : 'row' }}>
+                      {/* flexWrap — при длинном ФИО + тег роли + время в одной строке на узком
+                          экране (~78% от ~390px) элементам не хватало места, и вместо переноса
+                          на новую строку имя сжималось до переноса чуть ли не по буквам
+                          (см. фидбэк со скриншотом). Теперь тег/время при нехватке места просто
+                          уходят на следующую строку. */}
+                      <div style={{ display: 'flex', gap: 6, alignItems: 'baseline', flexWrap: 'wrap', flexDirection: staff ? 'row-reverse' : 'row' }}>
                         <Typography.Text strong style={{ fontSize: 13 }}>{c.author?.fullName ?? '—'}</Typography.Text>
                         {authorRole && (
                           <Tag color={staff ? 'blue' : 'default'} style={{ marginInlineEnd: 0 }}>
