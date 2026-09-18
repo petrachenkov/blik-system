@@ -26,6 +26,7 @@ npm install                       # установит зависимости в
 cp infra/.env.example infra/.env  # заполнить переменные окружения (LDAP, JWT, master-аккаунт)
 
 npm run prisma:migrate            # применить миграции БД (нужен запущенный Postgres)
+npm run build:backend             # prisma db seed запускает скомпилированный dist/prisma/seed.js
 npm run prisma:seed               # создать master-аккаунт из env
 
 npm run dev:backend               # http://localhost:3000 (Swagger: /api/docs)
