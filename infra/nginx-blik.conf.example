@@ -1,0 +1,60 @@
+# Добавить как отдельный vhost в конфиг ВНЕШНЕГО nginx, который уже держит 80/443 на этом
+# сервере под другой стек (см. infra/docker-compose.yml — свой Caddy убрали, конфликтовал
+# по портам). Этот файл никуда автоматически не подключается, это просто заготовка — нужно
+# скопировать в conf.d/ внешнего nginx (обычно /etc/nginx/conf.d/ или sites-available/) и
+# поправить отмеченные места под конкретную настройку сервера.
+
+# --- Порт 80: ACME-challenge (если certbot/acme.sh настроен через webroot) + редирект на https ---
+server {
+    listen 80;
+    server_name blik.tgiek.ru;
+
+    # Если сертификаты выпускаются через certbot --webroot — путь ниже должен совпадать
+    # с тем, что уже используется для остальных сайтов на этом nginx. Если сертификаты
+    # получаются иначе (DNS-01, другой ACME-клиент) — этот location не нужен, можно убрать.
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot; # ПРАВИТЬ: реальный webroot этого nginx
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+# --- Порт 443: сам сайт ---
+server {
+    listen 443 ssl http2;
+    server_name blik.tgiek.ru;
+
+    # ПРАВИТЬ: пути к сертификату для blik.tgiek.ru (получить через certbot/acme.sh —
+    # чем бы ни продлевались остальные сайты на этом сервере, тем же путём и этот).
+    ssl_certificate     /etc/letsencrypt/live/blik.tgiek.ru/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/blik.tgiek.ru/privkey.pem;
+
+    # Чуть выше MAX_VIDEO_UPLOAD_SIZE_MB на бэкенде (см. infra/.env) — иначе внешний nginx
+    # сам обрежет большую загрузку раньше, чем запрос дойдёт до backend.
+    client_max_body_size 220m;
+
+    location / {
+        # ПРАВИТЬ: адрес, по которому этот (внешний) nginx реально видит контейнер blik-nginx.
+        # Он в ДРУГОМ docker-compose проекте/сети, поэтому localhost/127.0.0.1 тут обычно не
+        # сработает (это loopback самого контейнера, а не хоста) — нужен либо:
+        #   - IP хоста в сети docker-моста (часто 172.17.0.1, проверить: `ip addr show docker0`
+        #     на хосте, или `docker network inspect bridge` — поле Gateway), либо
+        #   - host.docker.internal, если у этого nginx в его собственном docker-compose
+        #     прописано `extra_hosts: ["host.docker.internal:host-gateway"]`, либо
+        #   - просто LAN/внутренний IP самого сервера, если внешний nginx не в Docker,
+        #     а системный (тогда localhost:8088 как раз подойдёт).
+        proxy_pass http://ЗАМЕНИТЬ_НА_АДРЕС_ХОСТА:8088;
+
+        proxy_http_version 1.1;
+        # Заголовки апгрейда — обязательны, иначе сломается WebSocket (/socket.io, живые
+        # уведомления): без них соединение будет проксироваться как обычный HTTP-запрос.
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}

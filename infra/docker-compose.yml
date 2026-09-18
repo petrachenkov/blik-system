@@ -66,52 +66,22 @@ services:
     # порт 3000 другим контейнером иначе не давал бы стеку вообще подняться.
 
   # Multi-stage сборка: React (vite build) -> статика, отдаваемая nginx, который также
-  # проксирует /api и /socket.io на backend. Отдельный "frontend"-сервис не нужен. Порт наружу
-  # не публикуем — снаружи стоит caddy (см. ниже), nginx доступен только внутри docker-сети.
+  # проксирует /api и /socket.io на backend. Отдельный "frontend"-сервис не нужен.
+  #
+  # TLS/80-443 отдаём внешнему nginx (уже занимает эти порты на сервере под другой стек —
+  # см. обсуждение) вместо своего Caddy: тот nginx получает и продлевает сертификат сам
+  # (certbot/acme, что там уже настроено) и проксирует blik.tgiek.ru на порт ниже. Наружу
+  # публикуем ТОЛЬКО этот порт (не 80/443, они заняты) — см. infra/nginx-blik.conf.example
+  # для готового vhost-конфига, который нужно добавить во внешний nginx.
   nginx:
     build:
       context: ../apps/frontend
     restart: unless-stopped
     depends_on:
       - backend
-
-  # TLS-терминатор перед nginx — сам получает и продлевает сертификат Let's Encrypt по DOMAIN
-  # (см. infra/.env.example и Caddyfile). Нужен, чтобы наружу торчал HTTPS, а не голый :80 —
-  # обязательно для мини-приложения MAX и для браузерных Web Push.
-  caddy:
-    image: caddy:2-alpine
-    restart: unless-stopped
-    depends_on:
-      - nginx
-    environment:
-      DOMAIN: ${DOMAIN:?укажите публичный домен в .env, например blik.college.ru}
     ports:
-      - '80:80'
-      - '443:443'
-    # Caddyfile пишется прямо внутри контейнера при старте, не монтируется с хоста. И bind-mount
-    # (./Caddyfile:/etc/caddy/Caddyfile), и compose `configs:` (для обычного docker compose, не
-    # Swarm, реализован под капотом тем же bind-mount'ом) на Portainer-деплое из git-репозитория
-    # одинаково не находили файл на хосте после клонирования, хотя он в репозитории точно есть —
-    # со стороны Portainer причину выяснить не удалось, поэтому просто убрали зависимость от файла
-    # на хосте целиком. `{$DOMAIN}` внутри — не shell-переменная (heredoc с 'CADDYFILE' в кавычках,
-    # без раскрытия), это синтаксис самого Caddy — он подставит его сам из своего DOMAIN ниже,
-    # так же, как раньше при чтении смонтированного файла.
-    command:
-      - sh
-      - -c
-      - |
-        cat <<'CADDYFILE' > /etc/caddy/Caddyfile
-        {$$DOMAIN} {
-            reverse_proxy nginx:80
-        }
-        CADDYFILE
-        exec caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
-    volumes:
-      - caddy_data:/data
-      - caddy_config:/config
+      - '8088:80'
 
 volumes:
   pgdata:
   uploads:
-  caddy_data:
-  caddy_config:
