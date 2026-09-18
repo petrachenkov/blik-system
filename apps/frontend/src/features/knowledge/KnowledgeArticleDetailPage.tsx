@@ -89,6 +89,7 @@ export function KnowledgeArticleDetailPage() {
   return (
     <Space orientation="vertical" size={16} style={{ width: '100%' }}>
       <Card
+        styles={{ header: { paddingBlock: 16 } }}
         title={article.title}
         extra={
           canManage && (

@@ -47,6 +47,7 @@ export function KnowledgeBasePage() {
 
   return (
     <Card
+      styles={{ header: { paddingBlock: 16 } }}
       title="База знаний"
       extra={
         <Space wrap size="middle">

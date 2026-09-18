@@ -79,6 +79,7 @@ export function UsersPage() {
       </Card>
 
       <Card
+        styles={{ header: { paddingBlock: 16 } }}
         title="Пользователи"
         extra={
           <Tooltip title="Добавляет в список сотрудников из группы AD, которые ещё ни разу не входили в систему сами">

@@ -146,6 +146,11 @@ export function TicketsListPage() {
 
   return (
     <Card
+      // У .ant-card-head в antd по умолчанию padding-top: 0 (вертикальное центрирование через
+      // min-height, а не паддинг) — нормально смотрится в одну строку, но когда title/extra
+      // переносятся на несколько строк на мобильном (Space wrap), первая строка оказывается
+      // прижата к верхней границе карточки (см. фидбэк — "нет отступов от границ до полей").
+      styles={{ header: { paddingBlock: 16 } }}
       title={
         <Space wrap size="middle">
           {title}

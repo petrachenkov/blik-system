@@ -111,6 +111,7 @@ export function CartridgesPage() {
       )}
 
       <Card
+        styles={{ header: { paddingBlock: 16 } }}
         title="Заявки на заправку картриджей"
         extra={
           <Select

@@ -290,6 +290,7 @@ export function TicketDetailPage() {
     <Row gutter={[16, 16]}>
       <Col xs={24} lg={16}>
         <Card
+          styles={{ header: { paddingBlock: 16 } }}
           title={
             <Space wrap size="middle">
               <span>Заявка {ticket.number}</span>
