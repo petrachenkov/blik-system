@@ -49,7 +49,7 @@ export function KnowledgeBasePage() {
     <Card
       title="База знаний"
       extra={
-        <Space>
+        <Space wrap size="middle">
           <Input.Search placeholder="Поиск по названию и тексту" allowClear style={{ width: 260 }} onSearch={setSearch} />
           <Select
             allowClear

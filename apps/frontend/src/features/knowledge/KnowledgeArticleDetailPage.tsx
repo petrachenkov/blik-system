@@ -92,7 +92,7 @@ export function KnowledgeArticleDetailPage() {
         title={article.title}
         extra={
           canManage && (
-            <Space>
+            <Space wrap size="middle">
               <Button
                 icon={<EditOutlined />}
                 onClick={() => {

@@ -245,7 +245,7 @@ export function CalendarPage() {
   return (
     <Space direction="vertical" size="middle" style={{ display: 'flex' }}>
       <Space wrap style={{ justifyContent: 'space-between', width: '100%' }}>
-        <Space wrap>
+        <Space wrap size="middle">
           <Segmented
             value={view}
             onChange={(v) => setView(v as 'week' | 'day')}
@@ -265,7 +265,7 @@ export function CalendarPage() {
               : `${WEEKDAY_RU[ruWeekdayIndex(rangeStart)]}, ${rangeStart.date()} ${MONTH_RU[rangeStart.month()]} ${rangeStart.year()}`}
           </Typography.Text>
         </Space>
-        <Space wrap>
+        <Space wrap size="middle">
           <Segmented
             value={filter}
             onChange={(v) => setFilter(v as Filter)}

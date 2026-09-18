@@ -147,7 +147,7 @@ export function TicketsListPage() {
   return (
     <Card
       title={
-        <Space wrap>
+        <Space wrap size="middle">
           {title}
           {data && <Typography.Text type="secondary" style={{ fontWeight: 400 }}>({data.total})</Typography.Text>}
           {activeFilterChip && (

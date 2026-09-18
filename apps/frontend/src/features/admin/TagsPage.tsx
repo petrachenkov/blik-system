@@ -121,7 +121,7 @@ export function TagsPage() {
       >
         {editingTag && (
           <Space direction="vertical" size="middle" style={{ display: 'flex' }}>
-            <Space wrap>
+            <Space wrap size="middle">
               {editingTag.rules.length === 0 && <Typography.Text type="secondary">Пока нет ни одного слова</Typography.Text>}
               {editingTag.rules.map((rule) => (
                 <Tag

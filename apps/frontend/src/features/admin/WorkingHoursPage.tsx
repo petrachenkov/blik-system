@@ -115,7 +115,7 @@ export function WorkingHoursPage() {
               onChange={addHoliday}
               disabledDate={(d) => holidays.includes(d.format(DATE_FORMAT))}
             />
-            <Space wrap>
+            <Space wrap size="middle">
               {holidays.length === 0 && <Typography.Text type="secondary">Список пуст</Typography.Text>}
               {holidays.map((h) => (
                 <Tag key={h} closable onClose={() => setPartial({ holidays: holidays.filter((x) => x !== h) })}>

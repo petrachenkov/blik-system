@@ -214,7 +214,7 @@ export function VisitBlock({ ticketId, isCreator, isStaff, ticketStatus, assigne
     <Card size="small" title={<Space><CalendarOutlined /> Визит системного администратора</Space>} style={{ marginBottom: 16 }}>
       {active && (
         <div style={{ marginBottom: past.length || canProposeNew ? 12 : 0 }}>
-          <Space wrap>
+          <Space wrap size="middle">
             <Tag color={STATUS_TAG[active.status].color}>{STATUS_TAG[active.status].label}</Tag>
             <Typography.Text type="secondary" style={{ fontSize: 12 }}>исполнитель: {active.technician.fullName}</Typography.Text>
             {active.counterProposed && <Tag color="blue">встречное предложение заявителя</Tag>}
@@ -230,7 +230,7 @@ export function VisitBlock({ ticketId, isCreator, isStaff, ticketStatus, assigne
                 {active.scheduledEnd ? `–${dayjs(active.scheduledEnd).format('HH:mm')}` : ''}
               </Typography.Text>
               <div style={{ marginTop: 8 }}>
-                <Space wrap>
+                <Space wrap size="middle">
                   {isStaff && (
                     <Button size="small" onClick={() => statusMutation.mutate({ visitId: active.id, status: 'DONE' })}>
                       Визит состоялся

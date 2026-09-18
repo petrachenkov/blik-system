@@ -291,7 +291,7 @@ export function TicketDetailPage() {
       <Col xs={24} lg={16}>
         <Card
           title={
-            <Space wrap>
+            <Space wrap size="middle">
               <span>Заявка {ticket.number}</span>
               <Tag color={STATUS_COLORS[ticket.status]}>{STATUS_LABELS[ticket.status]}</Tag>
               {isStaff && ticket.priority && <Tag color={PRIORITY_COLORS[ticket.priority]}>{PRIORITY_LABELS[ticket.priority]}</Tag>}
@@ -299,7 +299,7 @@ export function TicketDetailPage() {
             </Space>
           }
           extra={
-            <Space>
+            <Space wrap size="middle">
               <Button icon={<FilePdfOutlined />} loading={reportMutation.isPending} onClick={() => reportMutation.mutate()}>
                 Справка по заявке
               </Button>
@@ -487,7 +487,7 @@ export function TicketDetailPage() {
                 )}
 
                 {canActOnStatus && executorStatuses.length > 0 && (
-                  <Space wrap>
+                  <Space wrap size="middle">
                     {executorStatuses.map((s) => (
                       <Button key={s} onClick={() => statusMutation.mutate(s)} loading={statusMutation.isPending}>
                         {STATUS_LABELS[s]}

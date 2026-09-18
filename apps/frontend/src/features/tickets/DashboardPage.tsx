@@ -136,7 +136,7 @@ export function DashboardPage() {
       dataSource={tasks}
       renderItem={(t) => (
         <List.Item>
-          <Space wrap>
+          <Space wrap size="middle">
             <Checkbox checked={t.done} onChange={(e) => taskToggle.mutate({ id: t.id, done: e.target.checked })} />
             <Tag color="default">
               {dayjs(t.start).format('DD.MM HH:mm')}–{dayjs(t.end).format('HH:mm')}

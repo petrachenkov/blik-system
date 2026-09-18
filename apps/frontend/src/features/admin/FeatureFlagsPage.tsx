@@ -102,7 +102,7 @@ function MaintenanceCard({ flag, onSave, pending }: { flag: AdminFlag; onSave: (
         onChange={(e) => setNote(e.target.value)}
         style={{ marginBottom: 12 }}
       />
-      <Space wrap>
+      <Space wrap size="middle">
         {flag.enabled ? (
           <Popconfirm title="Выключить режим обслуживания?" onConfirm={() => onSave(false, note || null)} okText="Выключить" cancelText="Отмена">
             <Button danger loading={pending}>Выключить режим обслуживания</Button>
