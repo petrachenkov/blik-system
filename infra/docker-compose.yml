@@ -68,19 +68,25 @@ services:
   # Multi-stage сборка: React (vite build) -> статика, отдаваемая nginx, который также
   # проксирует /api и /socket.io на backend. Отдельный "frontend"-сервис не нужен.
   #
-  # TLS/80-443 отдаём внешнему nginx (уже занимает эти порты на сервере под другой стек —
-  # см. обсуждение) вместо своего Caddy: тот nginx получает и продлевает сертификат сам
-  # (certbot/acme, что там уже настроено) и проксирует blik.tgiek.ru на порт ниже. Наружу
-  # публикуем ТОЛЬКО этот порт (не 80/443, они заняты) — см. infra/nginx-blik.conf.example
-  # для готового vhost-конфига, который нужно добавить во внешний nginx.
+  # TLS/80/443 отдаём Nginx Proxy Manager (NPM) — он уже занимает эти порты на сервере под
+  # другие сайты, свой Caddy поднять не получилось бы (конфликт портов). Вместо публикации
+  # порта на хост — общая docker-сеть с NPM (nginx_default, внешняя, уже существует), NPM
+  # достаёт этот контейнер прямо по имени внутри неё (Proxy Host в NPM: Forward Hostname —
+  # имя этого контейнера, Forward Port — 80) и сам получает/продлевает Let's Encrypt
+  # сертификат для blik.tgiek.ru через свой UI.
   nginx:
     build:
       context: ../apps/frontend
     restart: unless-stopped
     depends_on:
       - backend
-    ports:
-      - '8088:80'
+    networks:
+      - default
+      - nginx_default
+
+networks:
+  nginx_default:
+    external: true
 
 volumes:
   pgdata:
