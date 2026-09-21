@@ -1,0 +1,22 @@
+/*
+ * antd Card: .ant-card-head-wrapper (title + extra) is a plain flex row with no
+ * wrap — only our own <Space wrap> inside title/extra wraps their own children.
+ * When extra wraps into several rows on narrow screens, it doesn't push below
+ * the title; it just sits next to it, squeezing title into a narrow column and
+ * visually overlapping it (see feedback screenshot — "Заявки" title crushed
+ * against the "Справка о моих заявках" button). Below the antd `lg` breakpoint
+ * (992px, matches the `isMobile = !Grid.useBreakpoint().lg` pattern used across
+ * the app) title and extra stack as full-width rows instead.
+ */
+@media (max-width: 991.98px) {
+  .ant-card-head-wrapper {
+    flex-direction: column;
+    align-items: stretch;
+    row-gap: 8px;
+  }
+
+  .ant-card-head-wrapper > .ant-card-extra {
+    margin-inline-start: 0;
+    width: 100%;
+  }
+}

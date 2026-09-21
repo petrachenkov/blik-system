@@ -1,4 +1,4 @@
-import { Button, Card, Input, Segmented, Select, Space, Table, Tag, Typography, App as AntdApp, theme } from 'antd';
+import { Button, Card, Grid, Input, Segmented, Select, Space, Table, Tag, Tooltip, Typography, App as AntdApp, theme } from 'antd';
 import type { TableProps } from 'antd';
 import { CloseOutlined, FilePdfOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -44,6 +44,7 @@ export function TicketsListPage() {
   const queryClient = useQueryClient();
   const { message } = AntdApp.useApp();
   const { token } = theme.useToken();
+  const isMobile = !Grid.useBreakpoint().lg;
   const [urlParams, setUrlParams] = useSearchParams();
 
   const assigneeId = urlParams.get('assigneeId') ?? undefined;
@@ -196,9 +197,11 @@ export function TicketsListPage() {
               options={tags.map((t) => ({ value: t.id, label: <Tag color={t.color ?? undefined}>{t.name}</Tag> }))}
             />
           )}
-          <Button icon={<FilePdfOutlined />} loading={myReportMutation.isPending} onClick={() => myReportMutation.mutate()}>
-            Справка о моих заявках
-          </Button>
+          <Tooltip title={isMobile ? 'Справка о моих заявках' : undefined}>
+            <Button icon={<FilePdfOutlined />} loading={myReportMutation.isPending} onClick={() => myReportMutation.mutate()}>
+              {!isMobile && 'Справка о моих заявках'}
+            </Button>
+          </Tooltip>
           <Button type="primary" onClick={() => navigate('/tickets/new')}>Новая заявка</Button>
         </Space>
       }

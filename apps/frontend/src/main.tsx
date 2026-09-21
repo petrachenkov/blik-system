@@ -10,6 +10,7 @@ import { FeatureFlagsProvider } from './shared/flags/FeatureFlagsContext';
 import { ErrorBoundary } from './shared/errors/ErrorBoundary';
 import { installGlobalErrorReporting } from './shared/errors/globalErrorReporting';
 import { App } from './app/App';
+import './shared/styles/mobile-card-header.css';
 
 installGlobalErrorReporting();
 
