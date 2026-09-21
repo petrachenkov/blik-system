@@ -1,4 +1,4 @@
-import { Button, Card, Checkbox, Drawer, Space, Table, Tag, Typography, App as AntdApp } from 'antd';
+import { Button, Card, Checkbox, Drawer, Grid, Space, Table, Tag, Typography, App as AntdApp } from 'antd';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { useState } from 'react';
@@ -8,6 +8,7 @@ import { extractErrorMessage } from '../../shared/api/errors';
 export function ErrorLogPage() {
   const { message } = AntdApp.useApp();
   const queryClient = useQueryClient();
+  const isMobile = !Grid.useBreakpoint().lg;
   const [includeResolved, setIncludeResolved] = useState(false);
   const [selected, setSelected] = useState<ErrorLogEntry | null>(null);
 
@@ -28,6 +29,7 @@ export function ErrorLogPage() {
 
   return (
     <Card
+      styles={{ header: { paddingBlock: 16 } }}
       title="Журнал ошибок"
       extra={<Checkbox checked={includeResolved} onChange={(e) => setIncludeResolved(e.target.checked)}>Показывать решённые</Checkbox>}
     >
@@ -36,6 +38,7 @@ export function ErrorLogPage() {
         loading={isLoading}
         dataSource={data}
         pagination={{ pageSize: 30 }}
+        scroll={{ x: 'max-content' }}
         onRow={(record) => ({ onClick: () => setSelected(record), style: { cursor: 'pointer' } })}
         columns={[
           {
@@ -64,7 +67,7 @@ export function ErrorLogPage() {
         title={selected ? `Ошибка (${selected.source === 'BACKEND' ? 'сервер' : 'интерфейс'})` : ''}
         open={Boolean(selected)}
         onClose={() => setSelected(null)}
-        width={720}
+        width={isMobile ? '100%' : 720}
         extra={
           selected && !selected.resolvedAt ? (
             <Button type="primary" loading={resolveMutation.isPending} onClick={() => resolveMutation.mutate(selected.id)}>

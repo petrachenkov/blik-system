@@ -68,6 +68,7 @@ export function RefillEventsPage() {
         rowKey="id"
         loading={isLoading}
         dataSource={data}
+        scroll={{ x: 'max-content' }}
         columns={[
           { title: 'Отправка', dataIndex: 'scheduledAt', render: (v: string) => dayjs(v).format('DD.MM.YYYY HH:mm') },
           { title: 'Сдать до', dataIndex: 'submissionDeadline', render: (v: string) => dayjs(v).format('DD.MM.YYYY HH:mm') },

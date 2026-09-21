@@ -47,6 +47,7 @@ export function SlaConfigPage() {
         loading={isLoading}
         dataSource={data}
         pagination={false}
+        scroll={{ x: 'max-content' }}
         columns={[
           { title: 'Приоритет', dataIndex: 'priority', render: (p) => PRIORITY_LABELS[p as TicketPriority] },
           {

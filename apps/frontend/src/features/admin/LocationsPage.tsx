@@ -56,6 +56,7 @@ export function LocationsPage() {
         rowKey="id"
         loading={isLoading}
         dataSource={data}
+        scroll={{ x: 'max-content' }}
         columns={[
           { title: 'Корпус', dataIndex: 'building' },
           { title: 'Кабинет', dataIndex: 'room' },

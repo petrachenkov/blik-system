@@ -30,6 +30,7 @@ export function LoginLogPage() {
         loading={isLoading}
         dataSource={data}
         pagination={{ pageSize: 50 }}
+        scroll={{ x: 'max-content' }}
         columns={[
           { title: 'Время', dataIndex: 'createdAt', render: (v: string) => dayjs(v).format('DD.MM.YYYY HH:mm:ss') },
           { title: 'Логин', dataIndex: 'username' },

@@ -39,6 +39,7 @@ export function FeatureFlagsPage() {
           rowKey="key"
           dataSource={features}
           pagination={false}
+          scroll={{ x: 'max-content' }}
           columns={[
             {
               title: 'Фича',

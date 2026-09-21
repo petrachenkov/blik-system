@@ -34,6 +34,7 @@ export function WallboardKioskPage() {
   return (
     <Space direction="vertical" size="large" style={{ display: 'flex', maxWidth: 900 }}>
       <Card
+        styles={{ header: { paddingBlock: 16 } }}
         title="Настенная панель"
         extra={
           <Button icon={<DesktopOutlined />} onClick={() => window.open('/wallboard', '_blank', 'noopener')}>
@@ -83,6 +84,7 @@ export function WallboardKioskPage() {
           rowKey="id"
           dataSource={data}
           pagination={false}
+          scroll={{ x: 'max-content' }}
           columns={[
             { title: 'Где', dataIndex: 'label' },
             { title: 'Создал', render: (_, r) => r.createdBy?.fullName ?? '—' },

@@ -66,6 +66,7 @@ export function CartridgeReportsPage() {
           loading={collectedLoading}
           dataSource={collected?.items ?? []}
           pagination={false}
+          scroll={{ x: 'max-content' }}
           rowSelection={{ selectedRowKeys: selectedIds, onChange: (keys) => setSelectedIds(keys as string[]) }}
           columns={[
             { title: 'Код', dataIndex: 'code' },
@@ -82,6 +83,7 @@ export function CartridgeReportsPage() {
           rowKey="id"
           loading={reportsLoading}
           dataSource={reports}
+          scroll={{ x: 'max-content' }}
           columns={[
             { title: '№', dataIndex: 'number' },
             { title: 'Картриджей', render: (_, r) => r._count.requests },

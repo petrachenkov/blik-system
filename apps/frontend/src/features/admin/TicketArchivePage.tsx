@@ -85,6 +85,7 @@ export function TicketArchivePage() {
           loading={listLoading}
           dataSource={archived?.items ?? []}
           pagination={false}
+          scroll={{ x: 'max-content' }}
           onRow={(r) => ({ onClick: () => navigate(`/tickets/${r.id}`), style: { cursor: 'pointer' } })}
           columns={[
             { title: '№', dataIndex: 'number', width: 120 },

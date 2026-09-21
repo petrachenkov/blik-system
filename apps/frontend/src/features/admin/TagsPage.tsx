@@ -1,4 +1,4 @@
-import { Button, Card, Drawer, Form, Input, Popconfirm, Select, Space, Switch, Table, Tag, Typography, App as AntdApp } from 'antd';
+import { Button, Card, Drawer, Form, Grid, Input, Popconfirm, Select, Space, Switch, Table, Tag, Typography, App as AntdApp } from 'antd';
 import { DeleteOutlined, PlusOutlined, TagsOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -18,6 +18,7 @@ const COLOR_OPTIONS = ['blue', 'cyan', 'green', 'gold', 'orange', 'red', 'volcan
 export function TagsPage() {
   const { message } = AntdApp.useApp();
   const queryClient = useQueryClient();
+  const isMobile = !Grid.useBreakpoint().lg;
   const [form] = Form.useForm<{ name: string; color?: string }>();
   const [editingTagId, setEditingTagId] = useState<string | null>(null);
 
@@ -82,6 +83,7 @@ export function TagsPage() {
         rowKey="id"
         loading={isLoading}
         dataSource={data}
+        scroll={{ x: 'max-content' }}
         columns={[
           { title: 'Тег', render: (_, r) => <Tag color={r.color ?? undefined} icon={<TagsOutlined />}>{r.name}</Tag> },
           { title: 'Ключевых слов', dataIndex: ['rules'], render: (rules: TagModel['rules']) => rules.length },
@@ -117,7 +119,7 @@ export function TagsPage() {
         title={editingTag ? `Ключевые слова тега «${editingTag.name}»` : ''}
         open={Boolean(editingTag)}
         onClose={() => setEditingTagId(null)}
-        width={420}
+        width={isMobile ? '100%' : 420}
       >
         {editingTag && (
           <Space direction="vertical" size="middle" style={{ display: 'flex' }}>

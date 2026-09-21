@@ -24,6 +24,7 @@ export function CartridgeArchivePage() {
         loading={isLoading}
         dataSource={data?.items ?? []}
         pagination={{ pageSize: 20, total: data?.total ?? 0 }}
+        scroll={{ x: 'max-content' }}
         columns={[
           { title: '№', dataIndex: 'number', width: 130 },
           { title: 'Код', dataIndex: 'code' },

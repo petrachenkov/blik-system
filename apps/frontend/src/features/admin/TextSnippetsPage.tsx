@@ -82,6 +82,7 @@ export function TextSnippetsPage() {
         loading={isLoading}
         dataSource={data}
         pagination={false}
+        scroll={{ x: 'max-content' }}
         columns={[
           { title: 'Заголовок', dataIndex: 'title', width: 220 },
           {

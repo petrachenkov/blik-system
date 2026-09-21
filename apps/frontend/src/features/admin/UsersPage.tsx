@@ -93,6 +93,7 @@ export function UsersPage() {
           rowKey="id"
           loading={isLoading}
           dataSource={data}
+          scroll={{ x: 'max-content' }}
           columns={[
             {
               title: 'Пользователь',

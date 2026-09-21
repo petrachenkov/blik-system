@@ -48,7 +48,7 @@ export function AnnouncementPage() {
           <Input.TextArea rows={4} placeholder="Например, сегодня с 18:00 плановые работы в сети" />
         </Form.Item>
         <Form.Item>
-          <Space>
+          <Space wrap size="middle">
             <Button type="primary" htmlType="submit" loading={publishMutation.isPending}>
               Опубликовать
             </Button>

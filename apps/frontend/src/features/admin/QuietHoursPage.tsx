@@ -64,7 +64,7 @@ export function QuietHoursPage() {
         </Form.Item>
 
         {enabled && (
-          <Space size="large">
+          <Space size="large" wrap>
             <Form.Item label="Начало" required>
               <TimePicker value={start} onChange={(v) => setPartial({ start: v })} format={TIME_FORMAT} />
             </Form.Item>

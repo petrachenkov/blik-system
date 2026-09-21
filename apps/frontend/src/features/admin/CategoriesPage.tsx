@@ -44,6 +44,7 @@ export function CategoriesPage() {
         rowKey="id"
         loading={isLoading}
         dataSource={data}
+        scroll={{ x: 'max-content' }}
         columns={[
           { title: 'Название', dataIndex: 'name' },
           { title: 'Slug', dataIndex: 'slug' },
