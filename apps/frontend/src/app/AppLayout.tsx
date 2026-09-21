@@ -296,6 +296,11 @@ export function AppLayout() {
               // обычный flex-child, который раньше просто сжимал Content вместо содержимого
               // (см. фидбэк со скриншотом — текст переносился по буквам в узкую полоску).
               ...(isMobile ? { position: 'fixed', insetInlineStart: 0, top: 0, bottom: 0, zIndex: 100 } : {}),
+              // Без этого пункты меню ниже высоты экрана были просто недоступны — Sider с
+              // фиксированной высотой (top/bottom: 0) не скроллится сам по себе (см. фидбэк
+              // "меню не листается"), а у сисадмина пунктов меню больше, чем помещается на
+              // экране телефона.
+              overflowY: 'auto',
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#fff', fontSize: 20, fontWeight: 700, padding: '16px 20px' }}>

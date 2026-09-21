@@ -70,6 +70,7 @@ export function KnowledgeBasePage() {
         rowKey="id"
         loading={isLoading}
         dataSource={data}
+        scroll={{ x: 'max-content' }}
         onRow={(record) => ({ onClick: () => navigate(`/knowledge/${record.id}`), style: { cursor: 'pointer' } })}
         columns={[
           { title: 'Название', dataIndex: 'title' },

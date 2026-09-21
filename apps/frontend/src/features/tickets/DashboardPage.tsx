@@ -160,6 +160,7 @@ export function DashboardPage() {
       size="small"
       pagination={false}
       dataSource={tickets}
+      scroll={{ x: 'max-content' }}
       onRow={(r) => ({ onClick: () => navigate(`/tickets/${r.id}`), style: { cursor: 'pointer' } })}
       columns={[
         { title: '№', dataIndex: 'number', width: 120 },
