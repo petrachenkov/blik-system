@@ -11,6 +11,7 @@ import { ErrorBoundary } from './shared/errors/ErrorBoundary';
 import { installGlobalErrorReporting } from './shared/errors/globalErrorReporting';
 import { App } from './app/App';
 import './shared/styles/mobile-card-header.css';
+import './shared/styles/mobile.css';
 
 installGlobalErrorReporting();
 

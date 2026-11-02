@@ -1,6 +1,7 @@
-import { Button, Card, Grid, Input, Segmented, Select, Space, Table, Tag, Tooltip, Typography, App as AntdApp, theme } from 'antd';
+import { Button, Card, Empty, Grid, Input, Pagination, Segmented, Select, Space, Spin, Table, Tag, Tooltip, Typography, App as AntdApp, theme } from 'antd';
+import { MobileTicketCard } from '../../shared/components/MobileTicketCard';
 import type { TableProps } from 'antd';
-import { CloseOutlined, FilePdfOutlined } from '@ant-design/icons';
+import { CloseOutlined, FilePdfOutlined, FilterOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useMemo, useState } from 'react';
@@ -56,6 +57,7 @@ export function TicketsListPage() {
   });
   const [status, setStatus] = useState<TicketStatus | undefined>(undefined);
   const [search, setSearch] = useState('');
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [tagId, setTagId] = useState<string | undefined>(undefined);
   const [view, setView] = useState<ViewFilter>('all');
   const [page, setPage] = useState(1);
@@ -147,6 +149,7 @@ export function TicketsListPage() {
 
   return (
     <Card
+      className="tickets-page"
       // У .ant-card-head в antd по умолчанию padding-top: 0 (вертикальное центрирование через
       // min-height, а не паддинг) — нормально смотрится в одну строку, но когда title/extra
       // переносятся на несколько строк на мобильном (Space wrap), первая строка оказывается
@@ -176,6 +179,8 @@ export function TicketsListPage() {
             style={{ width: 240 }}
             onSearch={(v) => { setSearch(v); setPage(1); }}
           />
+          {isMobile && <Button icon={<FilterOutlined />} onClick={() => setFiltersOpen((v) => !v)} aria-expanded={filtersOpen}>{filtersOpen ? 'Скрыть фильтры' : `Фильтры${status || tagId || view !== 'all' ? ' · включены' : ''}`}</Button>}
+          {(!isMobile || filtersOpen) && <>
           {isStaffUi && (
             <Segmented value={view} onChange={(v) => setView(v as ViewFilter)} options={[{ label: 'Все', value: 'all' }, { label: 'Просроченные', value: 'overdue' }]} />
           )}
@@ -184,7 +189,7 @@ export function TicketsListPage() {
             placeholder="Статус"
             style={{ width: 160 }}
             value={status}
-            onChange={setStatus}
+            onChange={(v) => { setStatus(v); setPage(1); }}
             options={Object.entries(STATUS_LABELS).map(([value, label]) => ({ value, label }))}
           />
           {tags.length > 0 && (
@@ -199,9 +204,15 @@ export function TicketsListPage() {
           )}
           <Tooltip title={isMobile ? 'Справка о моих заявках' : undefined}>
             <Button icon={<FilePdfOutlined />} loading={myReportMutation.isPending} onClick={() => myReportMutation.mutate()}>
-              {!isMobile && 'Справка о моих заявках'}
+              Справка о моих заявках
             </Button>
           </Tooltip>
+          {isMobile && <Select aria-label="Порядок заявок" value={`${sort.sortBy}:${sort.sortOrder}`} onChange={(value) => { const [field, order] = value.split(':'); setSort({ sortBy: field as TicketSortField, sortOrder: order as 'asc' | 'desc' }); setPage(1); }} options={[
+            { value: 'createdAt:desc', label: 'Сначала новые' },
+            { value: 'createdAt:asc', label: 'Сначала старые' },
+            ...(isStaff ? [{ value: 'priority:desc', label: 'Сначала высокий приоритет' }] : []),
+          ]} />}
+          </>}
           <Button type="primary" onClick={() => navigate('/tickets/new')}>Новая заявка</Button>
         </Space>
       }
@@ -252,7 +263,16 @@ export function TicketsListPage() {
         </Space>
       )}
 
-      <Table<Ticket>
+      {isMobile ? (
+        <Spin spinning={isLoading}>
+          <div className="mobile-ticket-list">
+            {(data?.items ?? []).map((ticket) => <MobileTicketCard key={ticket.id} ticket={ticket} showPriority={isStaff} />)}
+            {!isLoading && !data?.items.length && <Empty description="Заявок не найдено. Измените поиск или создайте новую." image={Empty.PRESENTED_IMAGE_SIMPLE} />}
+          </div>
+          <Pagination simple current={page} pageSize={20} total={data?.total ?? 0} onChange={setPage} hideOnSinglePage showSizeChanger={false} style={{ justifyContent: 'center', marginTop: 20 }} />
+          {isStaff && <Typography.Paragraph type="secondary" style={{ marginTop: 16, marginBottom: 0 }}>Откройте заявку, чтобы назначить исполнителя или изменить статус.</Typography.Paragraph>}
+        </Spin>
+      ) : <Table<Ticket>
         rowKey="id"
         loading={isLoading}
         scroll={{ x: 'max-content' }}
@@ -327,7 +347,7 @@ export function TicketsListPage() {
             render: (_, t) => dayjs(t.createdAt).format('DD.MM.YYYY HH:mm'),
           },
         ]}
-      />
+      />}
     </Card>
   );
 }

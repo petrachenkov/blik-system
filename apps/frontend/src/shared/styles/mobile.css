@@ -1,0 +1,52 @@
+* { box-sizing: border-box; }
+body { margin: 0; }
+button, a, input, textarea { -webkit-tap-highlight-color: transparent; }
+.mobile-ticket-list { display: grid; gap: 12px; }
+.mobile-ticket {
+  display: flex; flex-direction: column; gap: 10px; width: 100%; min-width: 0;
+  padding: 16px; text-align: left; font: inherit; color: inherit;
+  background: transparent; border: 1px solid color-mix(in srgb, currentColor 16%, transparent);
+  border-radius: 12px; cursor: pointer; overflow-wrap: anywhere;
+}
+.mobile-ticket:active { background: color-mix(in srgb, currentColor 5%, transparent); }
+.mobile-ticket:focus-visible { outline: 2px solid #2b6cb0; outline-offset: 3px; }
+.mobile-ticket__heading, .mobile-ticket__footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.mobile-ticket__heading .ant-tag { margin: 0; white-space: normal; }
+.mobile-ticket__description { font-size: 15px; line-height: 1.55; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.mobile-ticket__meta { font-size: 13px; opacity: .75; line-height: 1.5; }
+.mobile-ticket__meta .anticon { margin-inline-end: 4px; }
+.mobile-ticket__footer { font-size: 12px; opacity: .8; }
+.mobile-bottom-nav { padding-bottom: env(safe-area-inset-bottom); }
+.mobile-bottom-nav button { min-height: 60px; cursor: pointer; }
+.mobile-bottom-nav button[aria-current="page"] { box-shadow: inset 0 3px #77b8ff; background: #ffffff0d !important; }
+@media (max-width: 991px) {
+  html { scroll-padding-top: 76px; }
+  .app-header { position: sticky; top: 0; z-index: 20 !important; padding-top: env(safe-area-inset-top) !important; height: calc(60px + env(safe-area-inset-top)) !important; }
+  .app-header .ant-btn { min-width: 44px; min-height: 44px; }
+  .app-content .ant-card .ant-card-body { padding: 16px; }
+  .app-content .ant-card .ant-card-head { padding-inline: 16px; }
+  .app-content .ant-btn:not(.ant-btn-sm) { min-height: 44px; height: auto; white-space: normal; }
+  .app-content .ant-input, .app-content .ant-input-affix-wrapper, .app-content .ant-select { font-size: 16px; }
+  .app-content .ant-select-single { min-height: 44px; }
+  .app-content .ant-input { min-height: 44px; }
+  .app-content textarea.ant-input { min-height: 100px; }
+  .app-content .ant-typography, .app-content .ant-descriptions-item-content { overflow-wrap: anywhere; }
+  .tickets-page > .ant-card-head .ant-card-extra > .ant-space { display: grid; grid-template-columns: minmax(0, 1fr); width: 100%; gap: 12px !important; }
+  .tickets-page .ant-card-extra .ant-input-search, .tickets-page .ant-card-extra .ant-select,
+  .tickets-page .ant-card-extra .ant-btn, .tickets-page .ant-card-extra .ant-segmented { width: 100% !important; }
+  .tickets-page .ant-card-extra .ant-input-search .ant-btn { width: 44px !important; }
+  .tickets-page .ant-input-group-addon { width: 1px; }
+  .tickets-page .ant-card-extra .ant-segmented-group { display: flex; }
+  .tickets-page .ant-card-extra .ant-segmented-item { flex: 1; text-align: center; }
+  .ticket-detail-page .ant-space { max-width: 100%; }
+  .ticket-detail-page .ant-space-item { min-width: 0; max-width: 100%; }
+  .ticket-detail-page .ant-select { max-width: 100%; min-width: 0 !important; }
+  .ticket-detail-page .ant-form-inline { display: flex; flex-direction: column; gap: 12px; }
+  .ticket-detail-page .ant-form-inline .ant-form-item { margin-inline-end: 0; width: 100%; }
+  .ticket-detail-page .ant-form-inline .ant-select { width: 100% !important; }
+  .ticket-detail-page .ant-descriptions-item-label { padding-bottom: 4px !important; }
+  .ticket-metadata { margin-bottom: 16px; }
+  .ticket-metadata summary { cursor: pointer; min-height: 44px; padding-block: 12px; font-weight: 600; }
+  .create-ticket-page { width: 100%; }
+  .ant-drawer .ant-menu-item { min-height: 44px; line-height: 44px; }
+}

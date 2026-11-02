@@ -290,7 +290,7 @@ export function TicketDetailPage() {
   const canReopen = nextStatuses.includes('REOPENED') && (isCreator || isAdmin);
 
   return (
-    <Row gutter={[16, 16]}>
+    <Row className="ticket-detail-page" gutter={[16, 16]}>
       <Col xs={24} lg={16}>
         <Card
           // title у antd Card по умолчанию white-space: nowrap + text-overflow: ellipsis
@@ -319,7 +319,7 @@ export function TicketDetailPage() {
                   loading={reportMutation.isPending}
                   onClick={() => reportMutation.mutate()}
                 >
-                  {!isMobile && 'Справка по заявке'}
+                  {isMobile ? 'Скачать справку' : 'Справка по заявке'}
                 </Button>
               </Tooltip>
               {user?.isMaster && (
@@ -342,7 +342,9 @@ export function TicketDetailPage() {
           {/* column={2} на узком экране всё равно рисовал 2 колонки label+value, сжимая
               длинные значения (ФИО, локацию) до переноса по буквам (см. фидбэк со
               скриншотом) — на мобильном каждая пара идёт отдельной строкой. */}
-          <Descriptions column={{ xs: 1, sm: 1, md: 2 }} bordered size="small" style={{ marginBottom: 16 }}>
+          <details className="ticket-metadata" open={!isMobile}>
+          {isMobile && <summary>Кабинет, исполнитель и сроки</summary>}
+          <Descriptions layout={isMobile ? 'vertical' : 'horizontal'} column={{ xs: 1, sm: 1, md: 2 }} bordered size="small" style={{ marginBottom: 16 }}>
             <Descriptions.Item label="Локация">{ticket.location.building}, каб. {ticket.location.room}{ticket.location.label ? ` (${ticket.location.label})` : ''}</Descriptions.Item>
             <Descriptions.Item label="Преподаватель">{ticket.createdBy.fullName}</Descriptions.Item>
             <Descriptions.Item label="Категория">{ticket.category?.name ?? <Typography.Text type="secondary">не задана</Typography.Text>}</Descriptions.Item>
@@ -359,6 +361,7 @@ export function TicketDetailPage() {
             )}
             <Descriptions.Item label="Создана" span={2}>{dayjs(ticket.createdAt).format('DD.MM.YYYY HH:mm')}</Descriptions.Item>
           </Descriptions>
+          </details>
 
           <div style={{ marginBottom: 16 }}>
             <Space size={4} wrap align="center">
@@ -758,7 +761,7 @@ export function TicketDetailPage() {
                   Внутренняя заметка (не видна заявителю)
                 </Checkbox>
               )}
-              <Space style={{ marginTop: 8 }}>
+              <Space wrap style={{ marginTop: 8 }}>
                 <Upload multiple fileList={commentFiles} beforeUpload={() => false} onChange={({ fileList }) => setCommentFiles(fileList)} showUploadList={{ showRemoveIcon: true }}>
                   <Button icon={<UploadOutlined />}>Прикрепить</Button>
                 </Upload>

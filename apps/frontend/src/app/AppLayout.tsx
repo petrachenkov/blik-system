@@ -1,4 +1,4 @@
-import { Alert, Button, Grid, Layout, Menu, Space, Tour, Typography, Avatar, Dropdown, theme } from 'antd';
+import { Alert, Button, Drawer, Grid, Layout, Menu, Space, Tour, Typography, Avatar, Dropdown, theme } from 'antd';
 import type { TourProps } from 'antd';
 import {
   UserOutlined,
@@ -86,14 +86,15 @@ export function AppLayout() {
   // переносился и вылезал за пределы фиксированной высоты Header, а стандартный триггер
   // сворачивания Sider при collapsedWidth=0 рисуется отдельным "плавающим" квадратом поверх
   // контента). Управляем collapsed сами и рисуем свою кнопку-гамбургер внутри Header.
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.lg;
   // У преподавателя (не staff) в меню всего 3 пункта — на мобильном выезжающий Sider ради
   // них избыточен (и был источником отдельных багов), вместо него — нижняя панель вкладок,
   // привычный мобильный паттерн (см. фидбэк со скриншотом).
   const isTeacher = user ? !isStaffRole(user.role) : false;
-  const showBottomNav = isMobile && isTeacher;
+  const showBottomNav = isMobile;
   const siderRef = useRef<HTMLDivElement>(null);
   const bellRef = useRef<HTMLSpanElement>(null);
   const themeRef = useRef<HTMLSpanElement>(null);
@@ -225,18 +226,24 @@ export function AppLayout() {
       : []),
   ];
 
-  const bottomNavItems = [
+  const bottomNavItems = isTeacher ? [
     { key: '/tickets', icon: <UnorderedListOutlined />, label: 'Заявки' },
     { key: '/tickets/new', icon: <PlusOutlined />, label: 'Новая заявка' },
     { key: '/cartridges', icon: <PrinterOutlined />, label: 'Картриджи' },
+  ] : [
+    { key: '/dashboard', icon: <HomeOutlined />, label: 'Главная' },
+    { key: '/tickets', icon: <UnorderedListOutlined />, label: 'Заявки' },
+    { key: '/tickets/new', icon: <PlusOutlined />, label: 'Создать' },
+    { key: 'more', icon: <MenuOutlined />, label: 'Ещё' },
   ];
 
   return (
-    <Layout style={{ minHeight: '100vh' }}>
+    <Layout className="app-shell" style={{ minHeight: '100dvh' }}>
       {showBottomNav ? (
         // Нижняя панель вместо Sider — тот же ref, чтобы онбординг-тур по-прежнему имел
         // валидную цель для первого шага.
         <div
+          className="mobile-bottom-nav"
           ref={siderRef}
           style={{
             position: 'fixed',
@@ -249,11 +256,12 @@ export function AppLayout() {
           }}
         >
           {bottomNavItems.map((item) => {
-            const active = location.pathname === item.key;
+            const active = location.pathname === item.key || (item.key === '/tickets' && location.pathname.startsWith('/tickets/') && location.pathname !== '/tickets/new');
             return (
               <button
                 key={item.key}
-                onClick={() => navigate(item.key)}
+                aria-current={active ? 'page' : undefined}
+                onClick={() => item.key === 'more' ? setMobileMenuOpen(true) : navigate(item.key)}
                 style={{
                   flex: 1,
                   display: 'flex',
@@ -321,8 +329,12 @@ export function AppLayout() {
           </Sider>
         </>
       )}
-      <Layout>
+      {isMobile && !isTeacher && <Drawer title="Все разделы" placement="left" open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} size={300} styles={{ body: { padding: 0, background: SIDER_BG } }}>
+        <Menu theme="dark" mode="inline" selectedKeys={[location.pathname]} items={menuItems} style={{ background: SIDER_BG }} onClick={({ key }) => { navigate(key); setMobileMenuOpen(false); }} />
+      </Drawer>}
+      <Layout style={{ minWidth: 0 }}>
         <Header
+          className="app-header"
           style={{
             background: token.colorBgContainer,
             display: 'flex',
@@ -339,7 +351,7 @@ export function AppLayout() {
           {isMobile && !showBottomNav ? (
             <Button type="text" icon={<MenuOutlined />} onClick={() => setCollapsed((c) => !c)} title="Меню" />
           ) : (
-            <span />
+            <Typography.Text strong style={{ fontSize: 20 }}>Blik</Typography.Text>
           )}
           <Space size={isMobile ? 0 : 8} style={{ flexShrink: 0 }}>
             <Button
@@ -361,8 +373,10 @@ export function AppLayout() {
               <NotificationBell />
             </span>
             <Dropdown
+              trigger={['click']}
               menu={{
                 items: [
+                  { key: 'profile-name', label: `${user.fullName} · ${ROLE_LABELS[user.role]}`, disabled: true },
                   {
                     key: 'notif-settings',
                     icon: <BellOutlined />,
@@ -380,7 +394,7 @@ export function AppLayout() {
                 ],
               }}
             >
-              <Space style={{ cursor: 'pointer', marginInlineStart: 4 }}>
+              <Space role="button" tabIndex={0} aria-label="Профиль и настройки" style={{ cursor: 'pointer', marginInlineStart: 4 }}>
                 <Avatar style={{ backgroundColor: ROLE_COLORS[user.role] }} icon={<UserOutlined />} />
                 {/* Имя/роль скрываем на узких экранах — не помещались в шапку и переносились
                     поверх контента (см. фидбэк со скриншотом); имя всё ещё видно по клику
@@ -397,7 +411,7 @@ export function AppLayout() {
         {/* Небольшой отступ, а не 0, сохранён намеренно: у карточек внутри страниц есть Row
             с gutter (отрицательные поля grid-системы) — без этого запаса появляется
             горизонтальный скролл на всю ширину экрана. */}
-        <Content style={{ padding: 16, paddingBottom: showBottomNav ? 72 : 16 }}>
+        <Content className="app-content" style={{ padding: isMobile ? 12 : 24, paddingBottom: showBottomNav ? 'calc(88px + env(safe-area-inset-bottom))' : 24, minWidth: 0 }}>
           {maintenance?.enabled && (
             <Alert
               type="error"

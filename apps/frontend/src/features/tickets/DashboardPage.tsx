@@ -1,4 +1,5 @@
-import { Card, Checkbox, Col, Empty, List, Row, Space, Table, Tag, Typography, App as AntdApp, theme } from 'antd';
+import { Card, Checkbox, Col, Empty, Grid, List, Row, Space, Table, Tag, Typography, App as AntdApp, theme } from 'antd';
+import { MobileTicketCard } from '../../shared/components/MobileTicketCard';
 import {
   CalendarOutlined,
   CarryOutOutlined,
@@ -87,6 +88,7 @@ function scrollToSection(id: string) {
 }
 
 export function DashboardPage() {
+  const isMobile = !Grid.useBreakpoint().lg;
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { message } = AntdApp.useApp();
@@ -155,7 +157,7 @@ export function DashboardPage() {
   );
 
   const ticketTable = (tickets: Ticket[], variant: 'sla' | 'priority' | 'plain') => (
-    <Table<Ticket>
+    isMobile ? <div className="mobile-ticket-list">{tickets.map((ticket) => <MobileTicketCard key={ticket.id} ticket={ticket} showPriority={variant === 'priority'} />)}{!tickets.length && <Empty description="Заявок нет" image={Empty.PRESENTED_IMAGE_SIMPLE} />}</div> : <Table<Ticket>
       rowKey="id"
       size="small"
       pagination={false}

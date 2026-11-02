@@ -1,4 +1,4 @@
-import { Alert, Button, Card, Form, Popconfirm, Select, Space, Steps, Table, Tag, Typography, App as AntdApp, theme } from 'antd';
+import { Alert, Button, Card, Checkbox, Empty, Form, Grid, Pagination, Popconfirm, Select, Space, Spin, Steps, Table, Tag, Typography, App as AntdApp, theme } from 'antd';
 import { DownloadOutlined, EnvironmentOutlined, InfoCircleOutlined, NumberOutlined, SendOutlined, TagOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -22,6 +22,7 @@ interface FormValues {
 }
 
 export function CartridgesPage() {
+  const isMobile = !Grid.useBreakpoint().lg;
   const { user } = useAuth();
   // modal — из контекстного App.useApp(), а не статический Modal.xxx(): статические методы
   // рендерятся вне дерева ConfigProvider и не подхватывают тёмную тему (см. фидбэк — код
@@ -31,13 +32,14 @@ export function CartridgesPage() {
   const queryClient = useQueryClient();
   const [form] = Form.useForm<FormValues>();
   const [status, setStatus] = useState<CartridgeRequestStatus | undefined>(undefined);
+  const [page, setPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const isStaff = user ? isStaffRole(user.role) : false;
 
   const { data: locations = [] } = useQuery({ queryKey: ['locations'], queryFn: () => fetchLocations() });
   const { data, isLoading } = useQuery({
-    queryKey: ['cartridges', { status }],
-    queryFn: () => fetchCartridges({ status }),
+    queryKey: ['cartridges', { status, page }],
+    queryFn: () => fetchCartridges({ status, page, pageSize: 20 }),
   });
   const { data: refillEvents = [] } = useQuery({ queryKey: ['refill-events'], queryFn: fetchRefillEvents });
 
@@ -119,7 +121,7 @@ export function CartridgesPage() {
             placeholder="Статус"
             style={{ width: 200 }}
             value={status}
-            onChange={setStatus}
+            onChange={(value) => { setStatus(value); setPage(1); }}
             options={Object.entries(CARTRIDGE_STATUS_LABELS).map(([value, label]) => ({ value, label }))}
           />
         }
@@ -214,11 +216,27 @@ export function CartridgesPage() {
           </Space>
         )}
 
-        <Table<CartridgeRequest>
+        {isMobile ? <Spin spinning={isLoading}><div className="mobile-ticket-list">
+          {(data?.items ?? []).map((r) => <Card key={r.id} size="small">
+            <Space orientation="vertical" size={12} style={{ width: '100%' }}>
+              <Space wrap><Typography.Text strong>{r.number}</Typography.Text><Tag color={CARTRIDGE_STATUS_COLORS[r.status]}>{CARTRIDGE_STATUS_LABELS[r.status]}</Tag></Space>
+              <Typography.Text>Код картриджа: <Typography.Text strong code>{r.code}</Typography.Text></Typography.Text>
+              <Typography.Text>{r.location.building}, каб. {r.location.room}</Typography.Text>
+              {isStaff && <Typography.Text type="secondary">{r.createdBy.fullName}</Typography.Text>}
+              <Typography.Text type="secondary">{dayjs(r.createdAt).format('DD.MM.YYYY · HH:mm')}</Typography.Text>
+              {isStaff && r.status === 'NEW' && <>
+                <Checkbox checked={selectedIds.includes(r.id)} onChange={(e) => setSelectedIds((ids) => e.target.checked ? [...ids, r.id] : ids.filter((id) => id !== r.id))}>Выбрать для печати этикетки</Checkbox>
+                <Button block onClick={() => collectMutation.mutate(r.id)} loading={collectMutation.isPending}>Забрать на заправку</Button>
+              </>}
+              {r.status === 'NEW' && (user?.id === r.createdBy.id || user?.role === 'ADMIN') && <Popconfirm title="Отменить заявку?" onConfirm={() => cancelMutation.mutate(r.id)} okText="Отменить заявку" cancelText="Оставить"><Button danger block loading={cancelMutation.isPending}>Отменить заявку</Button></Popconfirm>}
+            </Space>
+          </Card>)}
+          {!isLoading && !data?.items.length && <Empty description="Заявок на заправку пока нет" image={Empty.PRESENTED_IMAGE_SIMPLE} />}
+        </div><Pagination simple current={page} pageSize={20} total={data?.total ?? 0} onChange={setPage} hideOnSinglePage showSizeChanger={false} style={{ justifyContent: 'center', marginTop: 16 }} /></Spin> : <Table<CartridgeRequest>
           rowKey="id"
           loading={isLoading}
           dataSource={data?.items ?? []}
-          pagination={{ pageSize: 20, total: data?.total ?? 0 }}
+          pagination={{ current: page, pageSize: 20, total: data?.total ?? 0, onChange: setPage, showSizeChanger: false }}
           // 6-7 колонок не помещаются на мобильном без этого — таблица просто раздвигала всю
           // страницу вширь (см. фидбэк со скриншотом, "всё поехало"). Со scroll она остаётся
           // в границах карточки и скроллится сама по себе горизонтально.
@@ -267,7 +285,7 @@ export function CartridgesPage() {
               ),
             },
           ]}
-        />
+        />}
       </Card>
     </Space>
   );

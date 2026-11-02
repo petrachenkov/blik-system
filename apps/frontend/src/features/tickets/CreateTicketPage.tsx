@@ -84,11 +84,11 @@ export function CreateTicketPage() {
   };
 
   return (
-    <Card title="Новая заявка" style={{ maxWidth: 600 }}>
+    <Card className="create-ticket-page" title="Новая заявка" style={{ maxWidth: 600, marginInline: 'auto' }}>
       <Typography.Paragraph type="secondary">
-        Укажите, где произошла проблема, и опишите её — категорию и приоритет проставит исполнитель после того, как возьмёт заявку в работу.
+        Выберите кабинет и расскажите, что не работает. Фото поможет быстрее разобраться.
       </Typography.Paragraph>
-      <Form<FormValues> form={form} layout="vertical" onFinish={onFinish} disabled={submitting}>
+      <Form<FormValues> form={form} layout="vertical" size="large" onFinish={onFinish} disabled={submitting}>
         <Form.Item name="locationId" label="Кабинет / помещение" rules={[{ required: true, message: 'Выберите помещение' }]}>
           <Select
             showSearch
@@ -118,7 +118,7 @@ export function CreateTicketPage() {
         )}
 
         <Form.Item name="description" label="Описание проблемы" rules={[{ required: true, min: 5, message: 'Опишите проблему подробнее' }]}>
-          <Input.TextArea rows={5} placeholder="Что произошло? Опишите как можно подробнее" />
+          <Input.TextArea autoSize={{ minRows: 5, maxRows: 12 }} placeholder="Например: не включается проектор. Индикатор горит, но изображения нет." />
         </Form.Item>
 
         {(suggestionsQuery.data?.length ?? 0) > 0 && (
@@ -144,7 +144,7 @@ export function CreateTicketPage() {
           </Upload>
         </Form.Item>
         <Form.Item>
-          <Button type="primary" htmlType="submit" loading={submitting} disabled={submitting}>
+          <Button block size="large" type="primary" htmlType="submit" loading={submitting} disabled={submitting}>
             Отправить заявку
           </Button>
         </Form.Item>
