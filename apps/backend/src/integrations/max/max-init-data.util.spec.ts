@@ -57,4 +57,25 @@ describe('validateMaxInitData', () => {
     expect(validateMaxInitData('', BOT_TOKEN)).toBeNull();
     expect(validateMaxInitData(buildInitData(baseParams()), '')).toBeNull();
   });
+
+  it('принимает данные без чата — личная доставка работает по user_id', () => {
+    const { chat: _chat, ...params } = baseParams();
+    expect(validateMaxInitData(buildInitData(params), BOT_TOKEN)?.chatId).toBe('');
+  });
+
+  it('отклоняет повреждённое URL-кодирование без исключения', () => {
+    expect(validateMaxInitData(`${buildInitData(baseParams())}&broken=%ZZ`, BOT_TOKEN)).toBeNull();
+  });
+
+  it('отклоняет повторяющиеся поля', () => {
+    expect(validateMaxInitData(`${buildInitData(baseParams())}&user=%7B%7D`, BOT_TOKEN)).toBeNull();
+  });
+
+  it.each([{}, { id: null }, { id: 'undefined' }, { id: 0 }, { id: 1.5 }])('отклоняет некорректный user: %j', (user) => {
+    expect(validateMaxInitData(buildInitData({ ...baseParams(), user: JSON.stringify(user) }), BOT_TOKEN)).toBeNull();
+  });
+
+  it('отклоняет дату входа из будущего', () => {
+    expect(validateMaxInitData(buildInitData(baseParams(Math.floor(Date.now() / 1000) + 3600)), BOT_TOKEN)).toBeNull();
+  });
 });

@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import axios from 'axios';
-import { fetchMe, login as apiLogin, logout as apiLogout } from '../api/auth';
+import { fetchMe, login as apiLogin, loginAndLinkMax, logout as apiLogout } from '../api/auth';
 import { setAccessToken } from '../api/client';
 import type { CurrentUser } from '../types';
 
@@ -55,7 +55,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(
     async (username: string, password: string) => {
-      const res = await apiLogin(username, password);
+      const initData = window.WebApp?.initData;
+      const res = initData
+        ? await loginAndLinkMax(initData, username, password)
+        : await apiLogin(username, password);
       loginWithTokens(res.accessToken, res.user);
     },
     [loginWithTokens],

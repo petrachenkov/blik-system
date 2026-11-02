@@ -1,35 +1,65 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import type { Env } from '../../config/env.schema.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { DeliveryStatus, NotificationChannel, type Notification, type User } from '../../../generated/prisma/index.js';
 import type { NotificationChannelProvider } from './notification-channel.interface.js';
 
-/**
- * Заготовка канала для будущего бота в мессенджере Max (см. план — "Интеграция с Max").
- * Реальная отправка (вызов Max Bot API) сознательно не реализована сейчас — это отдельная
- * задача позже. Канал включается только для пользователей с привязанным MaxLink, но даже
- * тогда просто пишет "не реализовано" в NotificationDelivery, ничего никуда не отправляя.
- */
+/** Личные уведомления в диалог с ботом; групповой chat из initData не используем. */
 @Injectable()
 export class MaxChannelProvider implements NotificationChannelProvider {
   readonly channel = NotificationChannel.MAX;
   readonly interruptive = true;
   private readonly logger = new Logger(MaxChannelProvider.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly config: ConfigService<Env, true>,
+  ) {}
 
   async isEnabledFor(user: User): Promise<boolean> {
+    if (!this.config.get('MAX_BOT_TOKEN', { infer: true })) return false;
     const link = await this.prisma.maxLink.findUnique({ where: { userId: user.id } });
     return link !== null;
   }
 
   async send(notification: Notification, user: User): Promise<void> {
-    this.logger.debug(`Канал Max ещё не реализован (пользователь ${user.username}), пропуск отправки`);
+    // Повторно проверяем привязку: пока доставка ждала окончания тихих часов,
+    // пользователь мог отвязать MAX или администратор мог отключить учётку.
+    const link = await this.prisma.maxLink.findUnique({ where: { userId: user.id } });
+    const token = this.config.get('MAX_BOT_TOKEN', { infer: true });
+    let error: string | undefined;
+    if (!user.isActive || !link || !token) {
+      error = 'MAX отключён или аккаунт не привязан';
+    } else {
+      try {
+        const url = new URL('https://platform-api2.max.ru/messages');
+        url.searchParams.set('user_id', link.externalUserId);
+        const text = Array.from(`${notification.title}\n\n${notification.body}`).slice(0, 4000).join('');
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { Authorization: token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text }),
+          signal: AbortSignal.timeout(10_000),
+          redirect: 'error',
+        });
+        if (!response.ok) {
+          // Не сохраняем тело ответа: оно может содержать секреты или личные данные.
+          error = `MAX API: HTTP ${response.status}`;
+        }
+        await response.body?.cancel();
+      } catch {
+        error = 'Не удалось связаться с MAX API (сеть, TLS или тайм-аут)';
+      }
+    }
+    if (error) this.logger.warn(`Ошибка доставки MAX пользователю ${user.id}: ${error}`);
     await this.prisma.notificationDelivery.create({
       data: {
         notificationId: notification.id,
         channel: this.channel,
-        status: DeliveryStatus.FAILED,
-        error: 'Интеграция с Max ещё не реализована',
+        status: error ? DeliveryStatus.FAILED : DeliveryStatus.SENT,
+        sentAt: error ? undefined : new Date(),
+        error,
       },
     });
   }

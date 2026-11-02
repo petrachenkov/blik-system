@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../shared/auth/AuthContext';
 import { fetchMaintenance } from '../../shared/api/system';
 import { isAxiosError } from 'axios';
+import { extractErrorMessage } from '../../shared/api/errors';
 
 interface LoginFormValues {
   username: string;
@@ -32,6 +33,9 @@ export function LoginPage() {
     } catch (error) {
       let text = 'Не удалось войти. Попробуйте позже.';
       if (isAxiosError(error) && error.response?.status === 401) text = 'Неверный логин или пароль';
+      else if (isAxiosError(error) && error.response?.status === 409) {
+        text = extractErrorMessage(error, 'Этот MAX-аккаунт уже привязан к другому пользователю');
+      }
       else if (isAxiosError(error) && error.response?.status === 503) {
         text = (error.response.data as { message?: string })?.message ?? 'Система на техническом обслуживании';
       }

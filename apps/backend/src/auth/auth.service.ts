@@ -243,6 +243,10 @@ export class AuthService {
     }
 
     await this.assertNotBlockedByMaintenance(link.user, ctx);
+    if (parsed.chatId && parsed.chatId !== link.externalChatId) {
+      await this.prisma.maxLink.update({ where: { id: link.id }, data: { externalChatId: parsed.chatId } });
+    }
+    await this.usersService.touchLastLogin(link.user.id);
     await this.recordLoginEvent({ username: link.user.username, userId: link.user.id, result: LoginEventResult.SUCCESS, ctx });
     const tokens = await this.issueTokens(link.user, ctx);
     return { user: link.user, tokens };

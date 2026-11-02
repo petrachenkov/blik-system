@@ -36,7 +36,14 @@ export function validateMaxInitData(initData: string, botToken: string, maxAgeMs
   const originalHash = hashPairs[0][1];
   if (!originalHash) return null;
 
-  const decoded = pairs.map(([key, value]) => [key, decodeURIComponent(value)] as const);
+  let decoded: (readonly [string, string])[];
+  try {
+    decoded = pairs.map(([key, value]) => [key, decodeURIComponent(value.replace(/\+/g, ' '))] as const);
+  } catch {
+    return null;
+  }
+  if (new Set(decoded.map(([key]) => key)).size !== decoded.length) return null;
+  if (!/^[a-fA-F0-9]{64}$/.test(originalHash)) return null;
   const sorted = [...decoded].sort(([a], [b]) => a.localeCompare(b));
   const dataCheckString = sorted
     .filter(([key]) => key !== 'hash')
@@ -54,8 +61,9 @@ export function validateMaxInitData(initData: string, botToken: string, maxAgeMs
 
   const raw = Object.fromEntries(decoded);
   const authDate = Number(raw.auth_date);
-  if (!Number.isFinite(authDate)) return null;
-  if (Date.now() - authDate * 1000 > maxAgeMs) return null;
+  if (!Number.isSafeInteger(authDate) || authDate <= 0) return null;
+  const ageMs = Date.now() - authDate * 1000;
+  if (ageMs > maxAgeMs || ageMs < -60_000) return null;
 
   // `user`/`chat` — JSON-сериализованные объекты внутри query-строки (как в исходном
   // InitData-интерфейсе из документации: user:{id,...}, chat:{id,type}). Если на реальном
@@ -64,12 +72,21 @@ export function validateMaxInitData(initData: string, botToken: string, maxAgeMs
   let userId: string | undefined;
   let chatId: string | undefined;
   try {
-    if (raw.user) userId = String(JSON.parse(raw.user).id);
-    if (raw.chat) chatId = String(JSON.parse(raw.chat).id);
+    const user: unknown = raw.user ? JSON.parse(raw.user) : null;
+    const chat: unknown = raw.chat ? JSON.parse(raw.chat) : null;
+    const readId = (obj: unknown): string | undefined => {
+      if (!obj || typeof obj !== 'object' || !('id' in obj)) return undefined;
+      const id: unknown = obj.id;
+      if (typeof id === 'number' && Number.isSafeInteger(id)) return String(id);
+      if (typeof id === 'string' && /^-?\d+$/.test(id)) return id;
+      return undefined;
+    };
+    userId = readId(user);
+    chatId = readId(chat);
   } catch {
     return null;
   }
-  if (!userId) return null;
+  if (!userId || !/^[1-9]\d*$/.test(userId)) return null;
 
   return { userId, chatId: chatId ?? '', authDate, raw };
 }
