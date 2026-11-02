@@ -24,6 +24,11 @@ ENV PRISMA_SKIP_POSTINSTALL_GENERATE=true
 RUN apk add --no-cache tzdata
 ENV TZ=Europe/Moscow
 
+# Официальная цепочка НУЦ Минцифры для platform-api2.max.ru.
+# Node дополняет стандартные доверенные CA, сохраняя проверку TLS.
+COPY certs/russian-trusted-ca.pem /app/certs/russian-trusted-ca.pem
+ENV NODE_EXTRA_CA_CERTS=/app/certs/russian-trusted-ca.pem
+
 COPY package.json package-lock.json* ./
 RUN npm install --omit=dev --legacy-peer-deps
 
