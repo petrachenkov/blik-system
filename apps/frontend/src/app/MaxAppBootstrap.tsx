@@ -5,15 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../shared/auth/AuthContext';
 import { loginAndLinkMax, loginViaMax } from '../shared/api/auth';
 import { extractErrorMessage } from '../shared/api/errors';
-
-// Тип минимальный — нужны только используемые здесь поля MAX Bridge SDK
-// (https://dev.max.ru/docs/webapps/bridge). Скрипт подключён безусловно в index.html и вне
-// клиента MAX просто не создаёт window.WebApp — этот файл единственное место, где мы его читаем.
-declare global {
-  interface Window {
-    WebApp?: { initData?: string };
-  }
-}
+import { getMaxInitData } from '../shared/auth/max-init-data';
 
 interface LinkFormValues {
   username: string;
@@ -26,7 +18,7 @@ interface LinkFormValues {
  * нет, поэтому вся логика входа сосредоточена здесь; после успеха это уже обычный Blik —
  * никакого отдельного урезанного интерфейса не строим.
  */
-export function MaxAppBootstrap() {
+export function MaxAppBootstrap({ onAuthenticated }: { onAuthenticated?: () => void } = {}) {
   const { loginWithTokens } = useAuth();
   const navigate = useNavigate();
   const [state, setState] = useState<'checking' | 'not-max' | 'need-link' | 'error'>('checking');
@@ -35,7 +27,8 @@ export function MaxAppBootstrap() {
   const initDataRef = useRef<string | null>(null);
 
   useEffect(() => {
-    const initData = window.WebApp?.initData;
+    let cancelled = false;
+    const initData = getMaxInitData();
     if (!initData) {
       setState('not-max');
       return;
@@ -44,10 +37,13 @@ export function MaxAppBootstrap() {
 
     loginViaMax(initData)
       .then((res) => {
+        if (cancelled) return;
         loginWithTokens(res.accessToken, res.user);
+        onAuthenticated?.();
         navigate('/', { replace: true });
       })
       .catch((error: unknown) => {
+        if (cancelled) return;
         if (extractErrorMessage(error, '') === 'MAX_LINK_REQUIRED') {
           setState('need-link');
         } else {
@@ -55,6 +51,7 @@ export function MaxAppBootstrap() {
           setState('error');
         }
       });
+    return () => { cancelled = true; };
     // Однократно при монтировании — initData от MAX не меняется в течение сессии страницы.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -66,6 +63,7 @@ export function MaxAppBootstrap() {
     try {
       const res = await loginAndLinkMax(initData, values.username, values.password);
       loginWithTokens(res.accessToken, res.user);
+      onAuthenticated?.();
       navigate('/', { replace: true });
     } catch (error) {
       setErrorText(extractErrorMessage(error, 'Неверный логин или пароль'));

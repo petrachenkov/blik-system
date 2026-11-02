@@ -1,4 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
+import { useState } from 'react';
+import { getMaxInitData } from '../shared/auth/max-init-data';
 import { LoginPage } from '../features/auth/LoginPage';
 import { TicketsListPage } from '../features/tickets/TicketsListPage';
 import { CreateTicketPage } from '../features/tickets/CreateTicketPage';
@@ -38,6 +40,12 @@ import { ProtectedRoute } from './ProtectedRoute';
 import { MaxAppBootstrap } from './MaxAppBootstrap';
 
 export function App() {
+  // Проверяем MAX один раз на запуск страницы. После входа можно свободно
+  // переходить по приложению, даже если параметры запуска остаются в URL.
+  const [needsMaxLogin, setNeedsMaxLogin] = useState(() => Boolean(getMaxInitData()));
+  if (needsMaxLogin) {
+    return <MaxAppBootstrap onAuthenticated={() => setNeedsMaxLogin(false)} />;
+  }
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />

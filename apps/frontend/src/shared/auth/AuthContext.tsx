@@ -3,6 +3,7 @@ import axios from 'axios';
 import { fetchMe, login as apiLogin, loginAndLinkMax, logout as apiLogout } from '../api/auth';
 import { setAccessToken } from '../api/client';
 import type { CurrentUser } from '../types';
+import { getMaxInitData } from './max-init-data';
 
 interface AuthContextValue {
   user: CurrentUser | null;
@@ -20,10 +21,15 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<CurrentUser | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(() => !getMaxInitData());
 
   // При загрузке страницы пробуем восстановить сессию через refresh-cookie.
   useEffect(() => {
+    // В MAX личность подтверждает подписанный запуск, а не старая cookie Blik.
+    // Не запускаем refresh параллельно с MAX-входом: его ответ мог затереть новую сессию.
+    if (getMaxInitData()) {
+      return;
+    }
     let cancelled = false;
 
     async function restore() {
@@ -55,7 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(
     async (username: string, password: string) => {
-      const initData = window.WebApp?.initData;
+      const initData = getMaxInitData();
       const res = initData
         ? await loginAndLinkMax(initData, username, password)
         : await apiLogin(username, password);
