@@ -38,6 +38,7 @@ import { MaxLinkPage } from '../features/settings/MaxLinkPage';
 import { AppLayout } from './AppLayout';
 import { ProtectedRoute } from './ProtectedRoute';
 import { MaxAppBootstrap } from './MaxAppBootstrap';
+import { ServicesPage } from '../features/services/ServicesPage';
 
 export function App() {
   // Проверяем MAX один раз на запуск страницы. После входа можно свободно
@@ -83,6 +84,7 @@ export function App() {
           </Route>
 
           <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
+            <Route path="/services" element={<ServicesPage />} />
             <Route path="/admin/users" element={<UsersPage />} />
             <Route path="/admin/categories" element={<CategoriesPage />} />
             <Route path="/admin/locations" element={<LocationsPage />} />

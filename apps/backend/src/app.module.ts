@@ -28,6 +28,7 @@ import { FeatureFlagsModule } from './system/feature-flags.module.js';
 import { WorkingHoursModule } from './system/working-hours.module.js';
 import { SystemModule } from './system/system.module.js';
 import { SearchModule } from './search/search.module.js';
+import { LocalServicesModule } from './local-services/local-services.module.js';
 
 @Module({
   imports: [
@@ -61,6 +62,7 @@ import { SearchModule } from './search/search.module.js';
     TagsModule,
     SystemModule,
     SearchModule,
+    LocalServicesModule,
   ],
   controllers: [AppController],
   providers: [

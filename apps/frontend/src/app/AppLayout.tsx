@@ -31,6 +31,7 @@ import {
   BellOutlined,
   MessageOutlined,
   QrcodeOutlined,
+  AppstoreOutlined,
 } from '@ant-design/icons';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
@@ -139,6 +140,7 @@ export function AppLayout() {
       ? [{ key: '/dashboard', icon: <HomeOutlined />, label: 'Главная' }]
       : []),
     { key: '/tickets', icon: <UnorderedListOutlined />, label: 'Заявки' },
+    ...(user.role === 'ADMIN' ? [{ key: '/services', icon: <AppstoreOutlined />, label: 'Сервисы' }] : []),
     ...(isStaffRole(user.role) && visitsEnabled
       ? [{ key: '/calendar', icon: <CalendarOutlined />, label: 'Календарь' }]
       : []),
@@ -234,6 +236,7 @@ export function AppLayout() {
     { key: '/dashboard', icon: <HomeOutlined />, label: 'Главная' },
     { key: '/tickets', icon: <UnorderedListOutlined />, label: 'Заявки' },
     { key: '/tickets/new', icon: <PlusOutlined />, label: 'Создать' },
+    ...(user.role === 'ADMIN' ? [{ key: '/services', icon: <AppstoreOutlined />, label: 'Сервисы' }] : []),
     { key: 'more', icon: <MenuOutlined />, label: 'Ещё' },
   ];
 

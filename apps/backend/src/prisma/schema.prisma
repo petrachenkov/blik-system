@@ -11,6 +11,22 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Ссылки на внутренние сервисы. Небольшие иконки хранятся вместе с настройками,
+// чтобы они сохранялись в резервной копии БД и не зависели от внешнего хостинга.
+model LocalService {
+  id          String   @id @default(cuid())
+  name        String
+  description String   @default("")
+  url         String
+  iconType    String   @default("emoji")
+  emoji       String   @default("🔗")
+  imageData   String?
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
 // ---------------------------------------------------------------------------
 // Enums
 // ---------------------------------------------------------------------------

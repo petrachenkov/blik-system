@@ -1,5 +1,23 @@
 * { box-sizing: border-box; }
 body { margin: 0; }
+.services-page { max-width: 1200px; margin-inline: auto; }
+.services-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 16px; }
+.services-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr)); gap: 16px; }
+.service-card { min-width: 0; height: 100%; }
+.service-card > .ant-card-body { display: flex; flex-direction: column; height: 100%; }
+.service-link { display: flex; flex: 1; flex-direction: column; align-items: flex-start; gap: 12px; color: inherit; min-width: 0; overflow-wrap: anywhere; }
+.service-link:hover .service-name { color: var(--ant-color-primary); }
+.service-link:focus-visible { outline: 2px solid #2b6cb0; outline-offset: 6px; border-radius: 8px; }
+.service-icon { display: flex; align-items: center; justify-content: center; flex-shrink: 0; width: 64px; height: 64px; font-size: 38px; line-height: 1; border-radius: 14px; background: color-mix(in srgb, currentColor 5%, transparent); overflow: hidden; }
+.service-icon img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.service-name { font-size: 18px; font-weight: 600; line-height: 1.4; }
+.service-description { font-size: 14px; line-height: 1.6; opacity: .75; }
+.service-open { display: flex; align-items: center; gap: 8px; padding-top: 4px; font-size: 14px; color: var(--ant-color-primary); }
+.service-controls { display: grid; gap: 12px; border-top: 1px solid color-mix(in srgb, currentColor 10%, transparent); padding-top: 16px; margin-top: 16px; }
+.service-icon-editor { display: flex; gap: 16px; align-items: flex-start; margin-bottom: 24px; }
+.service-icon-editor > div { flex: 1; min-width: 0; }
+.service-emoji-options { display: flex; flex-wrap: wrap; gap: 6px; }
+.service-emoji-options .ant-btn { min-width: 40px; min-height: 40px; padding: 4px; font-size: 22px; }
 button, a, input, textarea { -webkit-tap-highlight-color: transparent; }
 .mobile-ticket-list { display: grid; gap: 12px; }
 .app-content { overflow-wrap: anywhere; }
@@ -36,6 +54,10 @@ button, a, input, textarea { -webkit-tap-highlight-color: transparent; }
 .mobile-bottom-nav button { min-height: 60px; cursor: pointer; }
 .mobile-bottom-nav button[aria-current="page"] { box-shadow: inset 0 3px #77b8ff; background: #ffffff0d !important; }
 @media (max-width: 991px) {
+  .services-heading { flex-direction: column; }
+  .services-heading > .ant-btn { width: 100%; }
+  .service-icon-editor { flex-direction: column; }
+  .service-icon-editor > div { width: 100%; }
   html { scroll-padding-top: 76px; }
   .app-header { position: sticky; top: 0; z-index: 20 !important; padding-top: env(safe-area-inset-top) !important; height: calc(60px + env(safe-area-inset-top)) !important; }
   .app-header .ant-btn { min-width: 44px; min-height: 44px; }

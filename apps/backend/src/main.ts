@@ -6,9 +6,12 @@ import helmet from 'helmet';
 import { AppModule } from './app.module.js';
 import type { Env } from './config/env.schema.js';
 import { ConfigService } from '@nestjs/config';
+import { json } from 'express';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  // Небольшая иконка сервиса (до 512 КБ) передаётся в JSON как data URL.
+  app.use('/api/local-services', json({ limit: '800kb' }));
   const config = app.get(ConfigService<Env, true>);
 
   // Доверяем первому хопу (единственный reverse-proxy перед приложением, см.
