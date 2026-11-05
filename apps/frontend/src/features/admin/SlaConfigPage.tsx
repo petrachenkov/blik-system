@@ -1,4 +1,5 @@
-import { Button, Card, InputNumber, Space, Table, Typography, App as AntdApp } from 'antd';
+import { ResponsiveTable as Table } from '../../shared/components/ResponsiveTable';
+import { Button, Card, InputNumber, Space, Typography, App as AntdApp } from 'antd';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchSlaConfigs, updateSlaConfig } from '../../shared/api/catalogs';
 import { PRIORITY_LABELS } from '../../shared/labels';

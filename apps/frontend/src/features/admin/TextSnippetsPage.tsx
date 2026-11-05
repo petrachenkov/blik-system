@@ -1,5 +1,6 @@
+import { ResponsiveTable as Table } from '../../shared/components/ResponsiveTable';
 import { useState } from 'react';
-import { Button, Card, Form, Input, Popconfirm, Segmented, Switch, Table, Tooltip, Typography, App as AntdApp } from 'antd';
+import { Button, Card, Form, Input, Popconfirm, Segmented, Switch, Tooltip, Typography, App as AntdApp } from 'antd';
 import { ArrowDownOutlined, ArrowUpOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createTextSnippet, deleteTextSnippet, fetchTextSnippets, updateTextSnippet } from '../../shared/api/textSnippets';

@@ -2,6 +2,8 @@
 body { margin: 0; }
 button, a, input, textarea { -webkit-tap-highlight-color: transparent; }
 .mobile-ticket-list { display: grid; gap: 12px; }
+.admin-records { display: grid; gap: 12px; min-width: 0; }
+.admin-record-field { display: grid; gap: 4px; min-width: 0; overflow-wrap: anywhere; }
 .mobile-ticket {
   display: flex; flex-direction: column; gap: 10px; width: 100%; min-width: 0;
   padding: 16px; text-align: left; font: inherit; color: inherit;
@@ -49,4 +51,21 @@ button, a, input, textarea { -webkit-tap-highlight-color: transparent; }
   .ticket-metadata summary { cursor: pointer; min-height: 44px; padding-block: 12px; font-weight: 600; }
   .create-ticket-page { width: 100%; }
   .ant-drawer .ant-menu-item { min-height: 44px; line-height: 44px; }
+  .app-content .ant-card, .app-content .ant-card-head-title, .app-content .ant-card-extra,
+  .app-content .ant-col, .app-content .ant-space-item { min-width: 0; max-width: 100%; }
+  .app-content .ant-card-head-title { white-space: normal; text-overflow: clip; overflow: visible; overflow-wrap: anywhere; }
+  .app-content .ant-space { max-width: 100%; flex-wrap: wrap; }
+  .app-content .ant-space-vertical { width: 100%; }
+  .app-content .ant-form-inline { flex-direction: column; gap: 12px; }
+  .app-content .ant-form-inline .ant-form-item { width: 100%; min-width: 0 !important; margin: 0; }
+  .app-content .ant-form-inline .ant-input, .app-content .ant-form-inline .ant-input-affix-wrapper,
+  .app-content .ant-form-inline .ant-select, .app-content .ant-form-inline .ant-picker { width: 100% !important; max-width: 100%; }
+  .app-content .ant-select, .app-content .ant-picker, .app-content .ant-input-affix-wrapper { max-width: 100%; min-width: 0 !important; }
+  .app-content .ant-picker-range { width: 100%; }
+  .app-content .ant-segmented { max-width: 100%; overflow-x: auto; }
+  .app-content .ant-tag { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+  .app-content .ant-upload-list-item-name { min-width: 0; }
+  .admin-record-field .ant-select, .admin-record-field .ant-input { width: 100% !important; }
+  .admin-record-field .ant-space { gap: 8px !important; }
+  .ant-modal { max-width: calc(100vw - 24px); margin-inline: auto; }
 }

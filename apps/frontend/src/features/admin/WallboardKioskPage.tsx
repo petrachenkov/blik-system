@@ -1,4 +1,5 @@
-import { Alert, Button, Card, Form, Input, Popconfirm, Space, Table, Tag, Typography, App as AntdApp } from 'antd';
+import { ResponsiveTable as Table } from '../../shared/components/ResponsiveTable';
+import { Alert, Button, Card, Form, Input, Popconfirm, Space, Tag, Typography, App as AntdApp } from 'antd';
 import { CopyOutlined, DesktopOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';

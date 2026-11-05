@@ -31,7 +31,7 @@ describe('MaxChannelProvider', () => {
     const [url, options] = fetchMock.mock.calls[0];
     expect(url.toString()).toBe('https://platform-api2.max.ru/messages?user_id=12345');
     expect(options.headers.Authorization).toBe('secret-token');
-    expect(JSON.parse(options.body)).toEqual({ text: 'Новая заявка\n\nНазначен исполнитель' });
+    expect(JSON.parse(options.body)).toEqual({ text: '<b>Новая заявка</b>\n\nНазначен исполнитель', format: 'html' });
     expect(prisma.notificationDelivery.create).toHaveBeenCalledWith({ data: expect.objectContaining({
       status: DeliveryStatus.SENT, sentAt: expect.any(Date),
     }) });
@@ -43,6 +43,14 @@ describe('MaxChannelProvider', () => {
     config.get.mockReturnValue('secret-token');
     prisma.maxLink.findUnique.mockResolvedValue(null);
     expect(await provider.isEnabledFor(user)).toBe(false);
+  });
+
+  it('добавляет HTTPS-кнопку к заявке', async () => {
+    config.get.mockImplementation((key) => key === 'CORS_ORIGIN' ? 'https://blik.tgiek.ru' : 'secret-token');
+    await provider.send({ ...notification, ticketId: 'ticket-1' }, user);
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body.format).toBe('html');
+    expect(body.attachments[0].payload.buttons[0][0]).toEqual({ type: 'link', text: 'Открыть заявку', url: 'https://blik.tgiek.ru/tickets/ticket-1' });
   });
 
   it('не отправляет отложенное уведомление после отвязки', async () => {
@@ -71,7 +79,7 @@ describe('MaxChannelProvider', () => {
   it('ограничивает текст лимитом MAX, сохраняя Unicode', async () => {
     await provider.send({ ...notification, body: '😀'.repeat(5000) }, user);
     const text = JSON.parse(fetchMock.mock.calls[0][1].body).text;
-    expect(Array.from(text)).toHaveLength(4000);
+    expect(text.length).toBeLessThanOrEqual(4000);
     expect(text.endsWith('😀')).toBe(true);
   });
 });

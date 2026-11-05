@@ -1,3 +1,4 @@
+import { shortTicketNumber } from '../../shared/ticket-number';
 import { Button, Card, Form, Input, Modal, Select, Space, Tag, Typography, Upload, App as AntdApp } from 'antd';
 import { FileTextOutlined, UploadOutlined } from '@ant-design/icons';
 import type { UploadFile } from 'antd/es/upload/interface';
@@ -74,7 +75,7 @@ export function CreateTicketPage() {
         }
       }
 
-      message.success(`Заявка ${ticket.number} создана`);
+      message.success(`Заявка ${shortTicketNumber(ticket.number)} создана`);
       navigate(`/tickets/${ticket.id}`, { replace: true });
     } catch {
       message.error('Не удалось создать заявку');

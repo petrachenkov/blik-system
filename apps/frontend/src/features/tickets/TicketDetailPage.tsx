@@ -1,3 +1,4 @@
+import { shortTicketNumber } from '../../shared/ticket-number';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -303,7 +304,7 @@ export function TicketDetailPage() {
               {/* nowrap у самого номера — иначе "Заявка"/"BLIK-000001" разрывались на разные
                   строки посередине (перенос между Space-элементами это не задевает, они
                   всё равно переносятся по отдельности). */}
-              <span style={{ whiteSpace: 'nowrap' }}>Заявка {ticket.number}</span>
+              <span style={{ whiteSpace: 'nowrap' }}>Заявка {shortTicketNumber(ticket.number)}</span>
               <Tag color={STATUS_COLORS[ticket.status]}>{STATUS_LABELS[ticket.status]}</Tag>
               {isStaff && ticket.priority && <Tag color={PRIORITY_COLORS[ticket.priority]}>{PRIORITY_LABELS[ticket.priority]}</Tag>}
               {isStaff && (ticket.isResponseBreached || ticket.isResolutionBreached) && <Tag color="red">Просрочена</Tag>}
@@ -324,7 +325,7 @@ export function TicketDetailPage() {
               </Tooltip>
               {user?.isMaster && (
                 <Popconfirm
-                  title={`Удалить заявку ${ticket.number}?`}
+                  title={`Удалить заявку ${shortTicketNumber(ticket.number)}?`}
                   description="Действие необратимо: комментарии, вложения и история будут удалены безвозвратно."
                   okText="Удалить"
                   okButtonProps={{ danger: true }}

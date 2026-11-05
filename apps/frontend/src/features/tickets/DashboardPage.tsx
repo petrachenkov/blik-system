@@ -1,3 +1,4 @@
+import { shortTicketNumber } from '../../shared/ticket-number';
 import { Card, Checkbox, Col, Empty, Grid, List, Row, Space, Table, Tag, Typography, App as AntdApp, theme } from 'antd';
 import { MobileTicketCard } from '../../shared/components/MobileTicketCard';
 import {
@@ -118,7 +119,7 @@ export function DashboardPage() {
                       (v.scheduledEnd ? `–${dayjs(v.scheduledEnd).format('HH:mm')}` : '')
                     : '—'}
                 </Tag>
-                <span>{v.ticket.number}</span>
+                <span>{shortTicketNumber(v.ticket.number)}</span>
               </Space>
             }
             description={
@@ -149,7 +150,7 @@ export function DashboardPage() {
             >
               {t.title}
             </span>
-            {t.ticket && <Typography.Text type="secondary" style={{ fontSize: 12 }}>{t.ticket.number}</Typography.Text>}
+            {t.ticket && <Typography.Text type="secondary" style={{ fontSize: 12 }}>{shortTicketNumber(t.ticket.number)}</Typography.Text>}
           </Space>
         </List.Item>
       )}
@@ -165,7 +166,7 @@ export function DashboardPage() {
       scroll={{ x: 'max-content' }}
       onRow={(r) => ({ onClick: () => navigate(`/tickets/${r.id}`), style: { cursor: 'pointer' } })}
       columns={[
-        { title: '№', dataIndex: 'number', width: 120 },
+        { title: '№', dataIndex: 'number', render: (value: string) => shortTicketNumber(value), width: 120 },
         { title: 'Кабинет', render: (_, t) => `${t.location.building}, каб. ${t.location.room}` },
         { title: 'Описание', dataIndex: 'description', ellipsis: true },
         ...(variant === 'priority'
@@ -319,7 +320,7 @@ export function DashboardPage() {
             renderItem={(v) => (
               <List.Item style={{ cursor: 'pointer' }} onClick={() => navigate(`/tickets/${v.ticket.id}`)}>
                 <List.Item.Meta
-                  title={<Space><span>{v.ticket.number}</span><Tag>предложено окон: {v.slots.length}</Tag></Space>}
+                  title={<Space><span>{shortTicketNumber(v.ticket.number)}</span><Tag>предложено окон: {v.slots.length}</Tag></Space>}
                   description={
                     <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                       {loc(v.ticket.location)} · {v.ticket.createdBy?.fullName ?? '—'}

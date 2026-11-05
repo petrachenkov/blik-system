@@ -1,3 +1,4 @@
+import { shortTicketNumber } from '../../shared/ticket-number';
 import { useEffect } from 'react';
 import { DatePicker, Form, Input, Modal, Select, App as AntdApp } from 'antd';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -152,7 +153,7 @@ export function CalendarTaskModal({ open, onClose, initial, fixedTicketId, taskT
               optionFilterProp="label"
               options={(ticketList?.items ?? []).map((t) => ({
                 value: t.id,
-                label: `${t.number} — ${t.description.slice(0, 60)}`,
+                label: `${shortTicketNumber(t.number)} — ${t.description.slice(0, 60)}`,
               }))}
             />
           </Form.Item>

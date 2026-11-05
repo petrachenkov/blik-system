@@ -1,4 +1,6 @@
-import { Card, Table, Typography } from 'antd';
+import { shortTicketNumber } from '../../shared/ticket-number';
+import { ResponsiveTable as Table } from '../../shared/components/ResponsiveTable';
+import { Card, Typography } from 'antd';
 import { useQuery } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { fetchCartridges } from '../../shared/api/cartridges';
@@ -26,7 +28,7 @@ export function CartridgeArchivePage() {
         pagination={{ pageSize: 20, total: data?.total ?? 0 }}
         scroll={{ x: 'max-content' }}
         columns={[
-          { title: '№', dataIndex: 'number', width: 130 },
+          { title: '№', dataIndex: 'number', render: (value: string) => shortTicketNumber(value), width: 130 },
           { title: 'Код', dataIndex: 'code' },
           { title: 'Локация', render: (_, r) => `${r.location.building}, каб. ${r.location.room}` },
           { title: 'Преподаватель', render: (_, r) => r.createdBy.fullName },

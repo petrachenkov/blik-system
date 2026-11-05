@@ -1,4 +1,5 @@
-import { Button, Card, Checkbox, Drawer, Grid, Space, Table, Tag, Typography, App as AntdApp } from 'antd';
+import { ResponsiveTable as Table } from '../../shared/components/ResponsiveTable';
+import { Button, Card, Checkbox, Drawer, Grid, Space, Tag, Typography, App as AntdApp } from 'antd';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { useState } from 'react';

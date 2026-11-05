@@ -1,4 +1,5 @@
-import { Button, Card, Drawer, Form, Grid, Input, Popconfirm, Select, Space, Switch, Table, Tag, Typography, App as AntdApp } from 'antd';
+import { ResponsiveTable as Table } from '../../shared/components/ResponsiveTable';
+import { Button, Card, Drawer, Form, Grid, Input, Popconfirm, Select, Space, Switch, Tag, Typography, App as AntdApp } from 'antd';
 import { DeleteOutlined, PlusOutlined, TagsOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';

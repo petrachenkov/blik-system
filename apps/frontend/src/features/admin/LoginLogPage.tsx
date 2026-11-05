@@ -1,4 +1,5 @@
-import { Card, Table, Tag, Tooltip, Typography } from 'antd';
+import { ResponsiveTable as Table } from '../../shared/components/ResponsiveTable';
+import { Card, Tag, Tooltip, Typography } from 'antd';
 import { useQuery } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { fetchLoginEvents, type LoginEvent, type LoginEventResult } from '../../shared/api/loginLog';

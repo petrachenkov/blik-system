@@ -1,3 +1,4 @@
+import { shortTicketNumber } from '../../shared/ticket-number';
 import { useMemo, useRef, useState } from 'react';
 import { Alert, Button, Card, Radio, Segmented, Space, Typography, App as AntdApp } from 'antd';
 import { LeftOutlined, PlusOutlined, RightOutlined } from '@ant-design/icons';
@@ -338,7 +339,7 @@ export function CalendarPage() {
                   : (effScope === 'all' ? personColor(it.personId) : '#64748b');
                 const label = isVisit
                   ? it.visit.ticket.number
-                  : it.task.title + (it.task.ticket ? ` · ${it.task.ticket.number}` : '');
+                  : it.task.title + (it.task.ticket ? ` · ${shortTicketNumber(it.task.ticket.number)}` : '');
                 const sub = isVisit
                   ? `${it.visit.ticket.location.building}, ${it.visit.ticket.location.room}`
                   : (it.task.note ?? '');

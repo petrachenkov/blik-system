@@ -1,4 +1,5 @@
-import { Button, Card, Form, Input, Popconfirm, Select, Space, Table, Tag, Tooltip, Typography, App as AntdApp } from 'antd';
+import { ResponsiveTable as Table } from '../../shared/components/ResponsiveTable';
+import { Button, Card, Form, Input, Popconfirm, Select, Space, Tag, Tooltip, Typography, App as AntdApp } from 'antd';
 import { CloudSyncOutlined, DeleteOutlined, UserAddOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createLocalUser, deleteUser, fetchUsers, setUserRole, syncUsersFromLdap } from '../../shared/api/catalogs';

@@ -1,3 +1,4 @@
+import { shortTicketNumber } from '../../shared/ticket-number';
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
@@ -100,8 +101,8 @@ export function WallboardPage() {
           </div>
           {data && data.overdue.items.length === 0 && <div style={{ color: '#64748b' }}>Просроченных заявок нет</div>}
           {data?.overdue.items.map((item) => (
-            <div key={item.number} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid rgba(148,163,184,0.12)' }}>
-              <span style={{ fontWeight: 600 }}>{item.number}</span>
+            <div key={shortTicketNumber(item.number)} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid rgba(148,163,184,0.12)' }}>
+              <span style={{ fontWeight: 600 }}>{shortTicketNumber(item.number)}</span>
               <span style={{ color: '#94a3b8' }}>{item.assignee ?? 'не назначен'}</span>
               <span style={{ color: '#ef4444' }}>{item.breachType === 'resolution' ? 'решение' : 'реакция'}</span>
             </div>
@@ -113,11 +114,11 @@ export function WallboardPage() {
           {data && data.visitsToday.length === 0 && <div style={{ color: '#64748b' }}>На сегодня визитов нет</div>}
           {data?.visitsToday.map((v, i) => (
             <div
-              key={`${v.number}-${i}`}
+              key={`${shortTicketNumber(v.number)}-${i}`}
               style={{ display: 'flex', gap: 12, padding: '8px 0', borderBottom: '1px solid rgba(148,163,184,0.12)' }}
             >
               <span style={{ fontWeight: 700, color: '#38bdf8', minWidth: 54 }}>{v.time}</span>
-              <span style={{ fontWeight: 600, minWidth: 120 }}>{v.number}</span>
+              <span style={{ fontWeight: 600, minWidth: 120 }}>{shortTicketNumber(v.number)}</span>
               <span style={{ color: '#94a3b8', flex: 1 }}>{v.location}</span>
               <span style={{ color: '#94a3b8' }}>{v.technician}</span>
             </div>

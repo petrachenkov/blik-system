@@ -1,5 +1,7 @@
+import { shortTicketNumber } from '../../shared/ticket-number';
+import { ResponsiveTable as Table } from '../../shared/components/ResponsiveTable';
 import { useState } from 'react';
-import { Button, Card, InputNumber, Space, Switch, Table, Tag, Typography, App as AntdApp } from 'antd';
+import { Button, Card, InputNumber, Space, Switch, Tag, Typography, App as AntdApp } from 'antd';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
@@ -88,7 +90,7 @@ export function TicketArchivePage() {
           scroll={{ x: 'max-content' }}
           onRow={(r) => ({ onClick: () => navigate(`/tickets/${r.id}`), style: { cursor: 'pointer' } })}
           columns={[
-            { title: '№', dataIndex: 'number', width: 120 },
+            { title: '№', dataIndex: 'number', render: (value: string) => shortTicketNumber(value), width: 120 },
             { title: 'Кабинет', render: (_, t) => `${t.location.building}, каб. ${t.location.room}` },
             { title: 'Описание', dataIndex: 'description', ellipsis: true },
             { title: 'Статус', width: 120, render: (_, t) => <Tag color={STATUS_COLORS[t.status]}>{STATUS_LABELS[t.status]}</Tag> },

@@ -1,3 +1,4 @@
+import { shortTicketNumber } from '../../shared/ticket-number';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Empty, Input, Modal, Spin, Tag, Typography } from 'antd';
 import { FileTextOutlined, ReadOutlined, EnvironmentOutlined, UserOutlined, SearchOutlined } from '@ant-design/icons';
@@ -50,7 +51,7 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
         key: `t-${t.id}`,
         group: 'Заявки',
         icon: <FileTextOutlined />,
-        title: `${t.number} — ${t.description.slice(0, 80)}`,
+        title: `${shortTicketNumber(t.number)} — ${t.description.slice(0, 80)}`,
         extra: <Tag color={STATUS_COLORS[t.status]}>{STATUS_LABELS[t.status]}</Tag>,
         to: `/tickets/${t.id}`,
       });

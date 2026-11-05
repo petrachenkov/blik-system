@@ -1,4 +1,5 @@
-import { Button, Card, DatePicker, Form, Input, Popconfirm, Table, Tag, App as AntdApp } from 'antd';
+import { ResponsiveTable as Table } from '../../shared/components/ResponsiveTable';
+import { Button, Card, DatePicker, Form, Input, Popconfirm, Tag, App as AntdApp } from 'antd';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs, { type Dayjs } from 'dayjs';
 import { createRefillEvent, fetchRefillEvents, updateRefillEvent } from '../../shared/api/refillEvents';

@@ -1,4 +1,5 @@
-import { Button, Card, Form, Input, Popconfirm, Switch, Table, App as AntdApp } from 'antd';
+import { ResponsiveTable as Table } from '../../shared/components/ResponsiveTable';
+import { Button, Card, Form, Input, Popconfirm, Switch, App as AntdApp } from 'antd';
 import { DeleteOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createCategory, deleteCategory, fetchCategories, updateCategory } from '../../shared/api/catalogs';

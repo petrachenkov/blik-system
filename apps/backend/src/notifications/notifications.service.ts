@@ -1,6 +1,7 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { shortTicketNumber } from '../common/utils/ticket-number.js';
 import { NotificationType, TicketStatus, UserRole } from '../../generated/prisma/index.js';
 import { STATUS_LABELS_RU } from '../common/ru-labels.js';
 import { isWithinQuietHours } from '../common/utils/quiet-hours.js';
@@ -115,6 +116,17 @@ export class NotificationsService {
     );
     if (recipientIds.length === 0) return;
 
+    const ticket = params.ticketId ? await this.prisma.ticket.findUnique({
+      where: { id: params.ticketId },
+      include: { location: true, assignedTo: true },
+    }) : null;
+    const context = ticket ? [
+      `Кабинет: ${ticket.location.building}, ${ticket.location.room}`,
+      `Статус: ${STATUS_LABELS_RU[ticket.status]}`,
+      `Исполнитель: ${ticket.assignedTo?.fullName ?? 'пока не назначен'}`,
+      `Проблема: ${Array.from(ticket.description).slice(0, 250).join('')}`,
+    ].join('\n') : '';
+
     const quietHours = params.skipQuietHours ? { quietHoursStart: null, quietHoursEnd: null } : await this.getQuietHours();
     const quietNow = isWithinQuietHours(new Date(), quietHours.quietHoursStart ?? undefined, quietHours.quietHoursEnd ?? undefined);
 
@@ -135,8 +147,8 @@ export class NotificationsService {
           userId,
           ticketId: params.ticketId ?? null,
           type: params.type,
-          title: params.title,
-          body: params.body,
+          title: shortTicketNumber(params.title),
+          body: [params.body, context].filter(Boolean).join('\n\n'),
         },
       });
 
@@ -307,25 +319,35 @@ export class NotificationsService {
       ? [ticket.assignedToId, ...collabIds]
       : [ticket.createdById, ticket.assignedToId, ...collabIds];
 
+    const comment = await this.prisma.ticketComment.findUnique({ where: { id: event.commentId }, include: { author: true } });
+    // Не раскрываем удалённые комментарии; внутренние тексты идут только рабочей группе.
+    const preview = comment && !comment.deletedAt && comment.ticketId === ticket.id && comment.isInternal === event.isInternal
+      ? `${comment.author?.fullName ?? 'Сотрудник'}${event.isInternal ? ' · внутренняя заметка' : ''}:\n${Array.from(comment.body).slice(0, 400).join('')}`
+      : 'В заявке появилось новое сообщение.';
+
     await this.notifyUsers({
       userIds: recipients,
       excludeUserId: event.actorId,
       ticketId: ticket.id,
       type: NotificationType.TICKET_COMMENTED,
       title: `Новый комментарий в заявке ${ticket.number}`,
-      body: 'В заявке появилось новое сообщение.',
+      body: preview,
     });
 
     // Отдельное уведомление "Вас упомянули" — независимо от обычного о новом комментарии,
     // т.к. упомянутый может быть не заявителем и не исполнителем (см. план "Упоминания").
     if (event.mentionedUserIds.length > 0) {
+      const mentionedIds = event.isInternal ? (await this.prisma.user.findMany({
+        where: { id: { in: event.mentionedUserIds }, isActive: true, role: { in: [UserRole.ADMIN, UserRole.INTERN] } },
+        select: { id: true },
+      })).map((user) => user.id) : event.mentionedUserIds;
       await this.notifyUsers({
-        userIds: event.mentionedUserIds,
+        userIds: mentionedIds,
         excludeUserId: event.actorId,
         ticketId: ticket.id,
         type: NotificationType.TICKET_MENTIONED,
         title: `Вас упомянули в заявке ${ticket.number}`,
-        body: 'Коллега упомянул вас в комментарии к заявке.',
+        body: preview,
       });
     }
   }

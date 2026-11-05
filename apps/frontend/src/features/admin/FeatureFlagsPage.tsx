@@ -1,4 +1,5 @@
-import { Alert, Button, Card, Input, Popconfirm, Space, Switch, Table, Tag, Typography, App as AntdApp } from 'antd';
+import { ResponsiveTable as Table } from '../../shared/components/ResponsiveTable';
+import { Alert, Button, Card, Input, Popconfirm, Space, Switch, Tag, Typography, App as AntdApp } from 'antd';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { useState } from 'react';

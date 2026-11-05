@@ -1,4 +1,5 @@
-import { Button, Card, Popconfirm, Space, Table, Tag, Typography, App as AntdApp } from 'antd';
+import { ResponsiveTable as Table } from '../../shared/components/ResponsiveTable';
+import { Button, Card, Popconfirm, Space, Tag, Typography, App as AntdApp } from 'antd';
 import { DownloadOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';

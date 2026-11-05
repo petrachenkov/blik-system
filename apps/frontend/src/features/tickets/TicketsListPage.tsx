@@ -1,3 +1,4 @@
+import { shortTicketNumber } from '../../shared/ticket-number';
 import { Button, Card, Empty, Grid, Input, Pagination, Segmented, Select, Space, Spin, Table, Tag, Tooltip, Typography, App as AntdApp, theme } from 'antd';
 import { MobileTicketCard } from '../../shared/components/MobileTicketCard';
 import type { TableProps } from 'antd';
@@ -292,7 +293,7 @@ export function TicketsListPage() {
         onChange={handleTableChange}
         pagination={{ current: page, pageSize: 20, total: data?.total ?? 0, onChange: setPage }}
         columns={[
-          { title: '№', dataIndex: 'number', key: 'number', width: 130, sorter: true },
+          { title: '№', dataIndex: 'number', render: (value: string) => shortTicketNumber(value), key: 'number', width: 130, sorter: true },
           { title: 'Локация', render: (_, t) => `${t.location.building}, каб. ${t.location.room}` },
           { title: 'Описание', dataIndex: 'description', ellipsis: true },
           {

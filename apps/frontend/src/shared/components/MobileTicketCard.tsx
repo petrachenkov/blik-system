@@ -1,3 +1,4 @@
+import { shortTicketNumber } from '../ticket-number';
 import { Tag, Typography } from 'antd';
 import { EnvironmentOutlined, RightOutlined, UserOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
@@ -11,7 +12,7 @@ export function MobileTicketCard({ ticket, showPriority = false }: { ticket: Tic
   return (
     <button className="mobile-ticket" onClick={() => navigate(`/tickets/${ticket.id}`)}>
       <span className="mobile-ticket__heading">
-        <Typography.Text strong>{ticket.number}</Typography.Text>
+        <Typography.Text strong>{shortTicketNumber(ticket.number)}</Typography.Text>
         <Tag color={STATUS_COLORS[ticket.status]}>{STATUS_LABELS[ticket.status]}</Tag>
       </span>
       <span className="mobile-ticket__description">{ticket.description}</span>

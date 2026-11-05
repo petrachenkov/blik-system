@@ -4,6 +4,7 @@ import type { Env } from '../../config/env.schema.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { DeliveryStatus, NotificationChannel, type Notification, type User } from '../../../generated/prisma/index.js';
 import type { NotificationChannelProvider } from './notification-channel.interface.js';
+import { formatMaxMessage } from '../../integrations/max/max-message.util.js';
 
 /** Личные уведомления в диалог с ботом; групповой chat из initData не используем. */
 @Injectable()
@@ -35,11 +36,19 @@ export class MaxChannelProvider implements NotificationChannelProvider {
       try {
         const url = new URL('https://platform-api2.max.ru/messages');
         url.searchParams.set('user_id', link.externalUserId);
-        const text = Array.from(`${notification.title}\n\n${notification.body}`).slice(0, 4000).join('');
+        const text = formatMaxMessage(notification.title, notification.body);
+        const origin = this.config.get('CORS_ORIGIN', { infer: true })?.split(',')[0]?.trim();
+        let attachments: object[] | undefined;
+        if (notification.ticketId && origin) {
+          const target = new URL(`/tickets/${encodeURIComponent(notification.ticketId)}`, origin);
+          if (target.protocol === 'https:') attachments = [{ type: 'inline_keyboard', payload: { buttons: [[{
+            type: 'link', text: 'Открыть заявку', url: target.toString(),
+          }]] } }];
+        }
         const response = await fetch(url, {
           method: 'POST',
           headers: { Authorization: token, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text }),
+          body: JSON.stringify({ text, format: 'html', attachments }),
           signal: AbortSignal.timeout(10_000),
           redirect: 'error',
         });

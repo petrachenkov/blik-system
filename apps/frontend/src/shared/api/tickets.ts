@@ -59,7 +59,9 @@ export function removeCollaborator(ticketId: string, userId: string) {
 }
 
 export function fetchTickets(params: FindTicketsParams) {
-  return apiClient.get<TicketListResponse>('/tickets', { params }).then((r) => r.data);
+  const match = params.search?.trim().match(/^Б-(\d+)$/i);
+  const search = match ? `BLIK-${match[1].padStart(6, '0')}` : params.search;
+  return apiClient.get<TicketListResponse>('/tickets', { params: { ...params, search } }).then((r) => r.data);
 }
 
 export function fetchTicket(id: string) {

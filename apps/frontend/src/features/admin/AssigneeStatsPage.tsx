@@ -1,5 +1,6 @@
+import { ResponsiveTable as Table } from '../../shared/components/ResponsiveTable';
 import { useState } from 'react';
-import { Button, Card, Col, DatePicker, Rate, Row, Space, Table, Tag, Typography, App as AntdApp, theme } from 'antd';
+import { Button, Card, Col, DatePicker, Rate, Row, Space, Tag, Typography, App as AntdApp, theme } from 'antd';
 import { DownloadOutlined } from '@ant-design/icons';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import type { Dayjs } from 'dayjs';
