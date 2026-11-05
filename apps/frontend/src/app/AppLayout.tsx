@@ -329,7 +329,7 @@ export function AppLayout() {
           </Sider>
         </>
       )}
-      {isMobile && !isTeacher && <Drawer title="Все разделы" placement="left" open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} size={300} styles={{ body: { padding: 0, background: SIDER_BG } }}>
+      {isMobile && !isTeacher && <Drawer title="Все разделы" placement="left" open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} size="min(320px, 90vw)" styles={{ body: { padding: 0, background: SIDER_BG } }}>
         <Menu theme="dark" mode="inline" selectedKeys={[location.pathname]} items={menuItems} style={{ background: SIDER_BG }} onClick={({ key }) => { navigate(key); setMobileMenuOpen(false); }} />
       </Drawer>}
       <Layout style={{ minWidth: 0 }}>

@@ -1,4 +1,5 @@
 import { Fragment } from 'react';
+import { Grid } from 'antd';
 
 export interface BarChartSeries {
   key: string;
@@ -84,6 +85,7 @@ export function HorizontalBarChart({
   mutedColor = '#8c8c8c',
   integerAxis = false,
 }: HorizontalBarChartProps) {
+  const isMobile = !Grid.useBreakpoint().lg;
   if (categories.length === 0) {
     return (
       <div style={{ color: mutedColor, padding: '32px 0', textAlign: 'center', fontSize: 13 }}>{emptyLabel}</div>
@@ -99,6 +101,14 @@ export function HorizontalBarChart({
   const maxValue = Math.max(0, ...series.flatMap((s) => s.values.map((v) => v ?? 0)));
   const { niceMax, ticks } = calcAxis(maxValue, integerAxis);
   const scaleX = (value: number) => (value / niceMax) * plotWidth;
+
+  if (isMobile) return <div className="mobile-chart">{categories.map((category, index) => <div key={category} className="mobile-chart-category">
+    <strong>{category}</strong>
+    {series.map((item) => <div key={item.key}>
+      <div className="mobile-chart-label"><span>{item.label}</span><strong>{item.values[index] == null ? '—' : formatValue(item.values[index]!)}</strong></div>
+      <div className="mobile-chart-track" aria-hidden="true"><div style={{ width: `${Math.max(0, (item.values[index] ?? 0) / niceMax * 100)}%`, background: item.colors?.[index] ?? item.color }} /></div>
+    </div>)}
+  </div>)}</div>;
 
   return (
     <div>

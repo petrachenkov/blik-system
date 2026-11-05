@@ -1,6 +1,6 @@
 import { shortTicketNumber } from '../../shared/ticket-number';
 import { useMemo, useRef, useState } from 'react';
-import { Alert, Button, Card, Radio, Segmented, Space, Typography, App as AntdApp } from 'antd';
+import { Alert, Button, Card, Empty, Grid, Radio, Segmented, Space, Tag, Typography, App as AntdApp } from 'antd';
 import { LeftOutlined, PlusOutlined, RightOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -53,6 +53,7 @@ interface DragState {
 type Filter = 'all' | 'visits' | 'tasks';
 
 export function CalendarPage() {
+  const isMobile = !Grid.useBreakpoint().lg;
   const enabled = useFeatureFlag('visits');
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -244,7 +245,7 @@ export function CalendarPage() {
   };
 
   return (
-    <Space direction="vertical" size="middle" style={{ display: 'flex' }}>
+    <Space className="calendar-page" direction="vertical" size="middle" style={{ display: 'flex' }}>
       <Space wrap style={{ justifyContent: 'space-between', width: '100%' }}>
         <Space wrap size="middle">
           <Segmented
@@ -293,7 +294,23 @@ export function CalendarPage() {
         </Space>
       </Space>
 
-      <Card styles={{ body: { padding: 0, overflow: 'auto' } }} loading={visitsLoading || tasksLoading}>
+      {isMobile ? <div className="calendar-agenda">
+        {Array.from({ length: days }, (_, index) => {
+          const date = rangeStart.add(index, 'day');
+          const dayItems = itemsByDay[index] ?? [];
+          return <Card key={date.format('YYYY-MM-DD')} size="small" title={`${WEEKDAY_RU[ruWeekdayIndex(date)]}, ${date.format('DD.MM')}${date.isSame(dayjs(), 'day') ? ' · сегодня' : ''}`} loading={visitsLoading || tasksLoading}>
+            {dayItems.length ? dayItems.map((item) => <button key={item.id} className="calendar-agenda-item" onClick={() => openItem(item)}>
+              <strong>{item.start.format('HH:mm')}–{item.end.format('HH:mm')}</strong>
+              <span>{item.kind === 'visit' ? `Визит · ${shortTicketNumber(item.visit.ticket.number)}` : item.task.title}</span>
+              {item.kind === 'visit' && <span>{item.visit.ticket.location.building}, каб. {item.visit.ticket.location.room}</span>}
+              {effScope === 'all' && <span>{item.kind === 'visit' ? item.visit.technician.fullName : item.task.owner.fullName}</span>}
+              {conflictIds.has(item.id) && <Tag color="red">Пересечение по времени</Tag>}
+              {item.kind === 'task' && item.task.done && <Tag color="green">Выполнено</Tag>}
+            </button>) : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Ничего не запланировано" />}
+            <Button block style={{ marginTop: 12 }} onClick={() => setModalState({ mode: 'create', initial: { start: date.hour(9).minute(0).second(0), end: date.hour(10).minute(0).second(0) } })}>Добавить задачу</Button>
+          </Card>;
+        })}
+      </div> : <Card styles={{ body: { padding: 0, overflow: 'auto' } }} loading={visitsLoading || tasksLoading}>
         <div style={{ display: 'flex', borderBottom: '1px solid rgba(0,0,0,0.06)', position: 'sticky', top: 0, background: 'inherit', zIndex: 2 }}>
           <div style={{ width: GUTTER, flexShrink: 0 }} />
           {Array.from({ length: days }, (_, i) => {
@@ -401,11 +418,10 @@ export function CalendarPage() {
             </div>
           ))}
         </div>
-      </Card>
+      </Card>}
 
       <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-        Клик по свободному месту — новая задача. Перетащите блок, чтобы перенести его.
-        Пунктирные блоки — задачи и ещё не подтверждённые визиты; красная рамка — пересечение по времени.
+        {isMobile ? 'Нажмите на событие, чтобы открыть заявку или изменить задачу.' : 'Клик по свободному месту — новая задача. Перетащите блок, чтобы перенести его. Пунктирные блоки — задачи и ещё не подтверждённые визиты; красная рамка — пересечение по времени.'}
       </Typography.Text>
 
       <CalendarTaskModal

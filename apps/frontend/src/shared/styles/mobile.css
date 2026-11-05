@@ -2,6 +2,20 @@
 body { margin: 0; }
 button, a, input, textarea { -webkit-tap-highlight-color: transparent; }
 .mobile-ticket-list { display: grid; gap: 12px; }
+.app-content { overflow-wrap: anywhere; }
+.app-content .ant-card-head-wrapper { flex-wrap: wrap; gap: 12px; }
+.app-content .ant-card-head-title { min-width: 0; white-space: normal; overflow-wrap: anywhere; }
+.app-content .ant-card-extra { min-width: 0; max-width: 100%; }
+.mobile-chart { display: grid; gap: 20px; }
+.mobile-chart-category { display: grid; gap: 10px; min-width: 0; }
+.mobile-chart-label { display: flex; gap: 12px; justify-content: space-between; font-size: 13px; margin-bottom: 6px; }
+.mobile-chart-label strong { flex-shrink: 0; }
+.mobile-chart-track { height: 10px; border-radius: 5px; overflow: hidden; background: color-mix(in srgb, currentColor 8%, transparent); }
+.mobile-chart-track > div { height: 100%; border-radius: inherit; }
+.ticket-message { min-width: 0; }
+.ticket-message-content { overflow-wrap: anywhere; }
+.calendar-agenda { display: grid; gap: 12px; min-width: 0; }
+.calendar-agenda-item { display: flex; flex-direction: column; gap: 6px; width: 100%; min-width: 0; padding: 14px; margin-bottom: 10px; border: 1px solid color-mix(in srgb, currentColor 18%, transparent); border-radius: 10px; font: inherit; text-align: left; color: inherit; background: transparent; overflow-wrap: anywhere; cursor: pointer; }
 .admin-records { display: grid; gap: 12px; min-width: 0; }
 .admin-record-field { display: grid; gap: 4px; min-width: 0; overflow-wrap: anywhere; }
 .mobile-ticket {
@@ -28,6 +42,13 @@ button, a, input, textarea { -webkit-tap-highlight-color: transparent; }
   .app-content .ant-card .ant-card-body { padding: 16px; }
   .app-content .ant-card .ant-card-head { padding-inline: 16px; }
   .app-content .ant-btn:not(.ant-btn-sm) { min-height: 44px; height: auto; white-space: normal; }
+  .app-content .ant-btn-sm { min-height: 40px; height: auto; white-space: normal; padding-block: 8px; }
+  .app-content .ant-select { min-height: 44px; }
+  .app-content .ant-select-selector { min-width: 0; align-items: center; }
+  .app-content .ant-select .ant-select-selection-item { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .app-content .ant-select-selection-placeholder { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .app-content .ant-checkbox-wrapper { min-height: 40px; align-items: center; }
+  .app-content .ant-checkbox-wrapper > span:last-child { min-width: 0; }
   .app-content .ant-input, .app-content .ant-input-affix-wrapper, .app-content .ant-select { font-size: 16px; }
   .app-content .ant-select-single { min-height: 44px; }
   .app-content .ant-input { min-height: 44px; }
@@ -54,8 +75,15 @@ button, a, input, textarea { -webkit-tap-highlight-color: transparent; }
   .app-content .ant-card, .app-content .ant-card-head-title, .app-content .ant-card-extra,
   .app-content .ant-col, .app-content .ant-space-item { min-width: 0; max-width: 100%; }
   .app-content .ant-card-head-title { white-space: normal; text-overflow: clip; overflow: visible; overflow-wrap: anywhere; }
+  .app-content .ant-card-head { padding-block: 12px; }
+  .app-content .ant-card-extra > .ant-space, .responsive-toolbar-card .ant-card-extra > .ant-space { display: grid; grid-template-columns: minmax(0, 1fr); width: 100%; gap: 10px !important; }
+  .app-content .ant-card-extra > .ant-space > .ant-space-item > .ant-btn,
+  .app-content .ant-card-extra > .ant-space > .ant-space-item > .ant-select,
+  .app-content .ant-card-extra > .ant-space > .ant-space-item > .ant-input-search { width: 100% !important; }
+  .app-content .ant-card-extra > .ant-select { width: 100% !important; }
   .app-content .ant-space { max-width: 100%; flex-wrap: wrap; }
   .app-content .ant-space-vertical { width: 100%; }
+  .app-content .ant-space-vertical > .ant-space-item { width: 100%; }
   .app-content .ant-form-inline { flex-direction: column; gap: 12px; }
   .app-content .ant-form-inline .ant-form-item { width: 100%; min-width: 0 !important; margin: 0; }
   .app-content .ant-form-inline .ant-input, .app-content .ant-form-inline .ant-input-affix-wrapper,
@@ -63,9 +91,64 @@ button, a, input, textarea { -webkit-tap-highlight-color: transparent; }
   .app-content .ant-select, .app-content .ant-picker, .app-content .ant-input-affix-wrapper { max-width: 100%; min-width: 0 !important; }
   .app-content .ant-picker-range { width: 100%; }
   .app-content .ant-segmented { max-width: 100%; overflow-x: auto; }
+  .snippet-kind { width: 100%; }
+  .snippet-kind .ant-segmented-group { display: flex; flex-wrap: wrap; }
+  .snippet-kind .ant-segmented-item { flex: 1 1 100%; }
+  .snippet-kind .ant-segmented-item-label { white-space: normal; line-height: 1.5; padding-block: 8px; }
+  .snippet-preview { max-width: 100% !important; width: 100%; white-space: pre-wrap !important; overflow-wrap: anywhere; }
   .app-content .ant-tag { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
   .app-content .ant-upload-list-item-name { min-width: 0; }
+  .ticket-message > .ant-avatar { display: none; }
+  .ticket-message-content { width: 100%; max-width: 100% !important; }
+  .ticket-detail-page > .ant-col { padding-inline: 4px !important; }
+  .ticket-detail-page .ant-card .ant-card .ant-card-body { padding: 12px; }
+  .ticket-detail-page .ant-card .ant-card .ant-card-head { padding-inline: 12px; }
+  .ticket-detail-page .ant-form, .ticket-detail-page .ant-select { width: 100% !important; }
+  .ticket-detail-page .ant-space-item:has(> .ant-select) { flex: 1 1 100%; }
+  .comment-actions { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); width: 100%; }
+  .comment-actions .ant-btn { width: 100%; }
+  .comment-actions .ant-upload-wrapper, .comment-actions .ant-upload { display: block; width: 100%; min-width: 0; }
+  .dashboard-stat > .ant-card-body { padding: 12px !important; }
+  .dashboard-stat > .ant-card-body > .ant-space { display: flex; flex-direction: column; align-items: flex-start; gap: 10px !important; }
+  .dashboard-stat .ant-space-item { width: 100%; }
+  .dashboard-stat .ant-typography { display: block; line-height: 1.4; }
+  .notification-preference { display: grid !important; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px !important; padding-block: 12px !important; }
+  .notification-preference .ant-switch { min-height: 28px; }
+  .calendar-page > .ant-space-item > .ant-space { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px !important; }
+  .calendar-page .ant-radio-group { display: flex; flex-wrap: wrap; }
+  .calendar-page .ant-radio-button-wrapper { flex: 1; text-align: center; }
+  .calendar-page .ant-segmented-group { display: flex; }
+  .calendar-page .ant-segmented-item { flex: 1; text-align: center; }
   .admin-record-field .ant-select, .admin-record-field .ant-input { width: 100% !important; }
   .admin-record-field .ant-space { gap: 8px !important; }
   .ant-modal { max-width: calc(100vw - 24px); margin-inline: auto; }
+  .ant-modal .ant-modal-body { overflow-wrap: anywhere; }
+  .ant-modal .ant-form-item, .ant-modal .ant-select, .ant-modal .ant-picker { min-width: 0; max-width: 100%; }
+  .ant-modal .ant-input, .ant-modal .ant-select, .ant-modal .ant-picker-input > input { font-size: 16px; }
+  .ant-modal .ant-select, .ant-modal .ant-picker { min-height: 44px; }
+  .ant-modal .ant-modal-footer { display: flex; flex-wrap: wrap; gap: 8px; }
+  .ant-modal .ant-modal-footer .ant-btn { flex: 1; margin: 0; min-height: 44px; height: auto; white-space: normal; }
+  .ant-modal .ant-modal-title { padding-inline-end: 28px; overflow-wrap: anywhere; }
+  .ant-modal pre, .ant-drawer pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+  .ant-drawer .ant-drawer-header { flex-wrap: wrap; gap: 12px; }
+  .ant-drawer .ant-drawer-header-title { min-width: 0; }
+  .ant-drawer .ant-drawer-title { overflow-wrap: anywhere; }
+  .ant-drawer .ant-drawer-extra { max-width: 100%; }
+  .ant-drawer .ant-btn { min-height: 44px; height: auto; white-space: normal; }
+  .ant-drawer .ant-input, .ant-drawer .ant-select { font-size: 16px; }
+  .ant-drawer .ant-drawer-body { overflow-wrap: anywhere; }
+  .ant-select-dropdown .ant-select-item-option-content { white-space: normal; overflow-wrap: anywhere; }
+  .ant-select-dropdown .ant-select-item { min-height: 44px; align-items: center; }
+  .ant-popover { max-width: calc(100vw - 16px); overflow-wrap: anywhere; }
+  .ant-popover .ant-list-item-meta-content { min-width: 0; }
+  .ant-popover .ant-list-item-meta-title { white-space: normal; }
+  .notification-popover { position: fixed !important; inset-inline: 8px !important; top: calc(68px + env(safe-area-inset-top)) !important; width: auto !important; max-width: none; }
+  .notification-popover .ant-popover-inner-content > div { width: 100% !important; }
+  .ant-picker-dropdown { position: fixed !important; inset-inline: 8px !important; top: auto !important; bottom: 8px !important; width: calc(100vw - 16px) !important; max-width: calc(100vw - 16px); }
+  .ant-picker-dropdown .ant-picker-panel-container { width: 100%; max-width: 100%; max-height: 75dvh; overflow: auto; }
+  .ant-picker-dropdown .ant-picker-panels, .ant-picker-dropdown .ant-picker-datetime-panel { flex-direction: column; }
+  .ant-picker-dropdown .ant-picker-date-panel, .ant-picker-dropdown .ant-picker-month-panel, .ant-picker-dropdown .ant-picker-year-panel { width: 100%; }
+  .ant-picker-dropdown .ant-picker-time-panel { border-inline-start: 0; width: 100%; }
+  .ant-picker-dropdown .ant-picker-footer { position: sticky; bottom: 0; z-index: 1; background: var(--ant-color-bg-elevated, Canvas); }
+  .ant-picker-dropdown .ant-picker-footer .ant-btn { min-height: 40px; }
 }

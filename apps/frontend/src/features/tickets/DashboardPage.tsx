@@ -44,7 +44,7 @@ function StatTile({
   const toneColor = { neutral: token.colorPrimary, good: token.colorSuccess, warn: token.colorWarning, bad: token.colorError }[tone];
   const toneBg = { neutral: token.colorPrimaryBg, good: token.colorSuccessBg, warn: token.colorWarningBg, bad: token.colorErrorBg }[tone];
   return (
-    <Card size="small" style={{ borderInlineStart: `3px solid ${toneColor}`, cursor: onClick ? 'pointer' : undefined }} onClick={onClick}>
+    <Card className="dashboard-stat" size="small" style={{ height: '100%', borderInlineStart: `3px solid ${toneColor}`, cursor: onClick ? 'pointer' : undefined }} onClick={onClick}>
       <Space align="start" size={12}>
         <div
           style={{

@@ -1,20 +1,36 @@
-import { Button, Card, Checkbox, Empty, Grid, Pagination, Space, Spin, Table, Typography } from 'antd';
+import { Button, Card, Checkbox, Empty, Grid, Pagination, Select, Space, Spin, Table, Typography } from 'antd';
 import type { TableProps } from 'antd';
 import type { ReactNode } from 'react';
-import { useState } from 'react';
+import { Children, isValidElement, useState } from 'react';
 
 /** На телефоне каждая запись — карточка с подписями полей и доступными действиями. */
 export function ResponsiveTable<T extends object>(props: TableProps<T>) {
   const mobile = !Grid.useBreakpoint().lg;
   const [localPage, setLocalPage] = useState(1);
-  if (!mobile || props.summary) return <div style={{ minWidth: 0, overflowX: 'auto' }}><Table<T> {...props} /></div>;
+  const [sort, setSort] = useState<string>();
+  if (!mobile) return <div style={{ minWidth: 0, overflowX: 'auto' }}><Table<T> {...props} /></div>;
   const pagination = props.pagination === false ? null : props.pagination ?? {};
-  const page = pagination?.current ?? localPage;
   const pageSize = pagination?.pageSize ?? 10;
-  const rows = props.dataSource ?? [];
-  const shown = pagination && rows.length > pageSize ? rows.slice((page - 1) * pageSize, page * pageSize) : rows;
+  const rows = [...(props.dataSource ?? [])];
   const columns = (props.columns ?? []).filter((col) => !col.hidden && !('children' in col));
+  const sortables = columns.flatMap((col, index) => col.sorter && typeof col.title === 'string' ? [{ col, index }] : []);
+  if (sort) {
+    const [index, direction] = sort.split(':');
+    const sorter = columns[Number(index)]?.sorter;
+    const compare = typeof sorter === 'function' ? sorter : typeof sorter === 'object' ? sorter.compare : undefined;
+    if (compare) rows.sort((a, b) => compare(a, b, direction === 'asc' ? 'ascend' : 'descend') * (direction === 'asc' ? 1 : -1));
+  }
+  const page = pagination?.current ?? Math.min(localPage, Math.max(1, Math.ceil(rows.length / pageSize)));
+  const shown = pagination && rows.length > pageSize ? rows.slice((page - 1) * pageSize, page * pageSize) : rows;
+  const totals: { index: number; content: ReactNode }[] = [];
+  const collectTotals = (nodes: ReactNode) => Children.forEach(nodes, (node) => {
+    if (!isValidElement<{ index?: number; children?: ReactNode }>(node)) return;
+    if (node.type === Table.Summary.Cell && typeof node.props.index === 'number') totals.push({ index: node.props.index, content: node.props.children });
+    else if (node.props.children) collectTotals(node.props.children);
+  });
+  if (props.summary) collectTotals(props.summary(rows));
   return <Spin spinning={typeof props.loading === 'boolean' ? props.loading : Boolean(props.loading?.spinning)}>
+    {!!sortables.length && <Select aria-label="Сортировка записей" allowClear placeholder="Сортировка" value={sort} onChange={(value) => { setSort(value); setLocalPage(1); }} style={{ width: '100%', marginBottom: 12 }} options={sortables.flatMap(({ col, index }) => [{ value: `${index}:asc`, label: `${col.title}: по возрастанию` }, { value: `${index}:desc`, label: `${col.title}: по убыванию` }])} />}
     <div className="admin-records">
       {shown.map((record, index) => {
         const key = typeof props.rowKey === 'function' ? props.rowKey(record, index) : (record as Record<string, unknown>)[String(props.rowKey ?? 'key')] as string ?? index;
@@ -41,6 +57,7 @@ export function ResponsiveTable<T extends object>(props: TableProps<T>) {
       })}
       {!rows.length && <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Нет записей" />}
     </div>
+    {!!totals.length && <Card size="small" title="Итоги" style={{ marginTop: 12 }}><div className="admin-records">{totals.map(({ index, content }) => <div key={index} className="admin-record-field"><Typography.Text type="secondary">{typeof columns[index]?.title === 'function' ? '' : columns[index]?.title as ReactNode}</Typography.Text><div>{content}</div></div>)}</div></Card>}
     {pagination && <Pagination {...pagination} simple showSizeChanger={false} current={page} pageSize={pageSize} total={pagination.total ?? rows.length} hideOnSinglePage style={{ justifyContent: 'center', marginTop: 16 }} onChange={(next, size) => { setLocalPage(next); pagination.onChange?.(next, size); }} />}
   </Spin>;
 }

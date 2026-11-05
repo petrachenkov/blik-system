@@ -34,8 +34,6 @@ import {
   DeleteOutlined,
   EditOutlined,
   FilePdfOutlined,
-  FileTextOutlined,
-  ReadOutlined,
   SendOutlined,
   UploadOutlined,
   UserOutlined,
@@ -583,7 +581,7 @@ export function TicketDetailPage() {
 
                 if (c.deletedAt) {
                   return (
-                    <div key={c.id} style={{ display: 'flex', flexDirection: staff ? 'row-reverse' : 'row', gap: 8, alignItems: 'flex-start' }}>
+                    <div className="ticket-message" key={c.id} style={{ display: 'flex', flexDirection: staff ? 'row-reverse' : 'row', gap: 8, alignItems: 'flex-start' }}>
                       <Avatar style={{ backgroundColor: '#bfbfbf', flexShrink: 0 }} icon={<UserOutlined />} />
                       <div style={{ maxWidth: '78%' }}>
                         <Typography.Text type="secondary" italic style={{ fontSize: 13 }}>
@@ -595,12 +593,12 @@ export function TicketDetailPage() {
                 }
 
                 return (
-                  <div key={c.id} style={{ display: 'flex', flexDirection: staff ? 'row-reverse' : 'row', gap: 8, alignItems: 'flex-start' }}>
+                  <div className="ticket-message" key={c.id} style={{ display: 'flex', flexDirection: staff ? 'row-reverse' : 'row', gap: 8, alignItems: 'flex-start' }}>
                     <Avatar
                       style={{ backgroundColor: authorRole ? ROLE_COLORS[authorRole] : '#bfbfbf', flexShrink: 0 }}
                       icon={<UserOutlined />}
                     />
-                    <div style={{ maxWidth: '78%' }}>
+                    <div className="ticket-message-content" style={{ maxWidth: '78%', minWidth: 0, overflowWrap: 'anywhere' }}>
                       {/* flexWrap — при длинном ФИО + тег роли + время в одной строке на узком
                           экране (~78% от ~390px) элементам не хватало места, и вместо переноса
                           на новую строку имя сжималось до переноса чуть ли не по буквам
@@ -734,7 +732,7 @@ export function TicketDetailPage() {
                   showSearch
                   optionFilterProp="label"
                   style={{ width: '100%', marginTop: 8 }}
-                  placeholder={<Space><FileTextOutlined /> Вставить шаблон ответа</Space>}
+                  placeholder="Шаблон ответа"
                   value={undefined}
                   onChange={(snippetId) => {
                     const snippet = cannedResponsesQuery.data?.find((s) => s.id === snippetId);
@@ -750,7 +748,7 @@ export function TicketDetailPage() {
                   showSearch
                   optionFilterProp="label"
                   style={{ width: '100%', marginTop: 8 }}
-                  placeholder={<Space><ReadOutlined /> Прикрепить статью из базы знаний</Space>}
+                  placeholder="Статья из базы знаний"
                   loading={knowledgeArticlesQuery.isLoading}
                   value={commentArticleIds}
                   onChange={setCommentArticleIds}
@@ -762,7 +760,7 @@ export function TicketDetailPage() {
                   Внутренняя заметка (не видна заявителю)
                 </Checkbox>
               )}
-              <Space wrap style={{ marginTop: 8 }}>
+              <Space className="comment-actions" wrap style={{ marginTop: 8 }}>
                 <Upload multiple fileList={commentFiles} beforeUpload={() => false} onChange={({ fileList }) => setCommentFiles(fileList)} showUploadList={{ showRemoveIcon: true }}>
                   <Button icon={<UploadOutlined />}>Прикрепить</Button>
                 </Upload>

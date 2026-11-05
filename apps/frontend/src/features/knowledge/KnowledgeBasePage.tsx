@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Button, Card, Form, Input, Modal, Select, Space, Table, Tag, Typography, App as AntdApp } from 'antd';
+import { Button, Card, Form, Input, Modal, Select, Space, Tag, Typography, App as AntdApp } from 'antd';
+import { ResponsiveTable as Table } from '../../shared/components/ResponsiveTable';
 import { PlusOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -47,6 +48,7 @@ export function KnowledgeBasePage() {
 
   return (
     <Card
+      className="responsive-toolbar-card"
       styles={{ header: { paddingBlock: 16 } }}
       title="База знаний"
       extra={

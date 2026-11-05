@@ -64,7 +64,7 @@ export function TextSnippetsPage() {
 
   return (
     <Card title="Шаблоны текста">
-      <Segmented options={KIND_OPTIONS} value={kind} onChange={(v) => setKind(v as SnippetKind)} style={{ marginBottom: 16 }} />
+      <Segmented className="snippet-kind" options={KIND_OPTIONS} value={kind} onChange={(v) => setKind(v as SnippetKind)} style={{ marginBottom: 16 }} />
 
       <Form form={form} layout="inline" onFinish={(values) => createMutation.mutate(values)} style={{ marginBottom: 16, flexWrap: 'wrap', rowGap: 8 }}>
         <Form.Item name="title" rules={[{ required: true, min: 2, message: 'Введите заголовок' }]}>
@@ -91,7 +91,7 @@ export function TextSnippetsPage() {
             dataIndex: 'body',
             render: (body: string) => (
               <Tooltip title={body}>
-                <Typography.Text ellipsis style={{ maxWidth: 360, display: 'inline-block' }}>{body}</Typography.Text>
+                <Typography.Text className="snippet-preview" ellipsis style={{ maxWidth: 360, display: 'inline-block' }}>{body}</Typography.Text>
               </Tooltip>
             ),
           },

@@ -61,6 +61,7 @@ export function NotificationBell() {
 
   return (
     <Popover
+      classNames={{ root: 'notification-popover' }}
       open={open}
       onOpenChange={handleOpenChange}
       trigger="click"
@@ -83,7 +84,7 @@ export function NotificationBell() {
         // шапки не помещались на узких экранах и обрезались слева (см. фидбэк со скриншотом) —
         // 92vw почти не сокращал ширину (92% от 390px ≈ 359px, тот же результат), поэтому
         // жёсткий потолок 320px + отступ по 12px с каждой стороны на совсем узких экранах.
-        <div style={{ width: 'min(320px, calc(100vw - 24px))', maxHeight: 420, overflowY: 'auto' }}>
+        <div style={{ width: 'min(320px, calc(100vw - 64px))', maxHeight: 'min(420px, calc(100dvh - 160px))', overflowY: 'auto', overflowWrap: 'anywhere' }}>
           {notifications.length === 0 ? (
             <Empty description="Пока нет уведомлений" image={Empty.PRESENTED_IMAGE_SIMPLE} />
           ) : (
@@ -121,7 +122,7 @@ export function NotificationBell() {
         </div>
       }
     >
-      <Button type="text" icon={<Badge count={unreadCount} size="small"><BellOutlined style={{ fontSize: 18 }} /></Badge>} />
+      <Button aria-label="Уведомления" type="text" icon={<Badge count={unreadCount} size="small"><BellOutlined style={{ fontSize: 18 }} /></Badge>} />
     </Popover>
   );
 }

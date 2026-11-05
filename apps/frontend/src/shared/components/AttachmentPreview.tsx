@@ -49,14 +49,14 @@ export function AttachmentPreview({ downloadUrl, attachment }: { downloadUrl: st
   if (attachment.mimeType.startsWith('video/')) {
     return url ? (
       // eslint-disable-next-line jsx-a11y/media-has-caption
-      <video src={url} controls style={{ maxWidth: 260, maxHeight: 180, borderRadius: 4 }} />
+      <video src={url} controls style={{ width: '100%', maxWidth: 260, maxHeight: 180, borderRadius: 4 }} />
     ) : (
       <Skeleton.Image active style={{ width: 200, height: 120 }} />
     );
   }
 
   return (
-    <a href={url ?? undefined} download={attachment.filename} target="_blank" rel="noreferrer">
+    <a style={{ minWidth: 0, maxWidth: '100%', overflowWrap: 'anywhere' }} href={url ?? undefined} download={attachment.filename} target="_blank" rel="noreferrer">
       <Tag icon={<PaperClipOutlined />}>{attachment.filename}</Tag>
     </a>
   );

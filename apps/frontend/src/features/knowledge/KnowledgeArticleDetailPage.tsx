@@ -114,7 +114,7 @@ export function KnowledgeArticleDetailPage() {
           )
         }
       >
-        <Descriptions column={2} size="small" style={{ marginBottom: 16 }}>
+        <Descriptions column={{ xs: 1, sm: 1, md: 2 }} size="small" style={{ marginBottom: 16 }}>
           <Descriptions.Item label="Категория">
             {article.category ? <Tag>{article.category.name}</Tag> : <Typography.Text type="secondary">без категории</Typography.Text>}
           </Descriptions.Item>

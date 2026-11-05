@@ -110,6 +110,7 @@ export function NotificationPreferencesPage() {
             return (
               <div
                 key={r.type}
+                className="notification-preference"
                 style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '6px 0' }}
               >
                 <span style={{ flex: 1 }}>{r.label}</span>
