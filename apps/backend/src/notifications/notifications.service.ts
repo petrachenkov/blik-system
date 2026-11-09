@@ -104,6 +104,7 @@ export class NotificationsService {
     userIds: (string | null | undefined)[];
     excludeUserId?: string;
     ticketId?: string;
+    ticketStatus?: TicketStatus;
     type: NotificationType;
     title: string;
     body: string;
@@ -122,7 +123,7 @@ export class NotificationsService {
     }) : null;
     const context = ticket ? [
       `Кабинет: ${ticket.location.building}, ${ticket.location.room}`,
-      `Статус: ${STATUS_LABELS_RU[ticket.status]}`,
+      `Статус: ${STATUS_LABELS_RU[params.ticketStatus ?? ticket.status]}`,
       `Исполнитель: ${ticket.assignedTo?.fullName ?? 'пока не назначен'}`,
       `Проблема: ${Array.from(ticket.description).slice(0, 250).join('')}`,
     ].join('\n') : '';
@@ -147,6 +148,7 @@ export class NotificationsService {
           userId,
           ticketId: params.ticketId ?? null,
           type: params.type,
+          payload: params.ticketStatus === undefined ? undefined : { ticketStatus: params.ticketStatus },
           title: shortTicketNumber(params.title),
           body: [params.body, context].filter(Boolean).join('\n\n'),
         },
@@ -293,7 +295,8 @@ export class NotificationsService {
 
   @OnEvent(TICKET_EVENTS.STATUS_CHANGED)
   async onTicketStatusChanged(event: TicketStatusChangedEvent) {
-    const rule = STATUS_NOTIFICATION_RULES[event.toStatus as TicketStatus];
+    const ticketStatus = event.toStatus as TicketStatus;
+    const rule = STATUS_NOTIFICATION_RULES[ticketStatus];
     if (!rule) return; // например, IN_PROGRESS — рабочий переход, никого не уведомляем
 
     const ticket = await this.prisma.ticket.findUnique({
@@ -311,7 +314,8 @@ export class NotificationsService {
       excludeUserId: event.actorId,
       ticketId: ticket.id,
       type: NotificationType.TICKET_STATUS_CHANGED,
-      title: `Заявка ${ticket.number}: ${STATUS_LABELS_RU[event.toStatus as TicketStatus].toLowerCase()}`,
+      ticketStatus,
+      title: `Заявка ${ticket.number}: ${STATUS_LABELS_RU[ticketStatus].toLowerCase()}`,
       body: rule.body,
     });
   }

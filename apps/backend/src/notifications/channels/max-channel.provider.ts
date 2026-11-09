@@ -36,13 +36,13 @@ export class MaxChannelProvider implements NotificationChannelProvider {
       try {
         const url = new URL('https://platform-api2.max.ru/messages');
         url.searchParams.set('user_id', link.externalUserId);
-        const text = formatMaxMessage(notification.title, notification.body);
+        const text = formatMaxMessage(notification);
         const origin = this.config.get('CORS_ORIGIN', { infer: true })?.split(',')[0]?.trim();
         let attachments: object[] | undefined;
         if (notification.ticketId && origin) {
           const target = new URL(`/tickets/${encodeURIComponent(notification.ticketId)}`, origin);
           if (target.protocol === 'https:') attachments = [{ type: 'inline_keyboard', payload: { buttons: [[{
-            type: 'link', text: 'Открыть заявку', url: target.toString(),
+            type: 'link', text: '↗️ Открыть заявку', url: target.toString(),
           }]] } }];
         }
         const response = await fetch(url, {

@@ -2,12 +2,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ConfigService } from '@nestjs/config';
 import type { Env } from '../../config/env.schema.js';
 import type { PrismaService } from '../../prisma/prisma.service.js';
-import { DeliveryStatus, type Notification, type User } from '../../../generated/prisma/index.js';
+import { DeliveryStatus, NotificationType, type Notification, type User } from '../../../generated/prisma/index.js';
 import { MaxChannelProvider } from './max-channel.provider.js';
 
 describe('MaxChannelProvider', () => {
   const user = { id: 'user-1', isActive: true } as User;
-  const notification = { id: 'notice-1', title: 'Новая заявка', body: 'Назначен исполнитель' } as Notification;
+  const notification = { id: 'notice-1', type: NotificationType.TICKET_CREATED, title: 'Новая заявка', body: 'Не работает проектор', payload: null } as Notification;
   const link = { externalUserId: '12345', externalChatId: '-999' };
   const prisma = {
     maxLink: { findUnique: vi.fn() },
@@ -31,7 +31,7 @@ describe('MaxChannelProvider', () => {
     const [url, options] = fetchMock.mock.calls[0];
     expect(url.toString()).toBe('https://platform-api2.max.ru/messages?user_id=12345');
     expect(options.headers.Authorization).toBe('secret-token');
-    expect(JSON.parse(options.body)).toEqual({ text: '<b>Новая заявка</b>\n\nНазначен исполнитель', format: 'html' });
+    expect(JSON.parse(options.body)).toEqual({ text: '🆕 <b>Новая заявка</b>\n\nНе работает проектор', format: 'html' });
     expect(prisma.notificationDelivery.create).toHaveBeenCalledWith({ data: expect.objectContaining({
       status: DeliveryStatus.SENT, sentAt: expect.any(Date),
     }) });
@@ -50,7 +50,7 @@ describe('MaxChannelProvider', () => {
     await provider.send({ ...notification, ticketId: 'ticket-1' }, user);
     const body = JSON.parse(fetchMock.mock.calls[0][1].body);
     expect(body.format).toBe('html');
-    expect(body.attachments[0].payload.buttons[0][0]).toEqual({ type: 'link', text: 'Открыть заявку', url: 'https://blik.tgiek.ru/tickets/ticket-1' });
+    expect(body.attachments[0].payload.buttons[0][0]).toEqual({ type: 'link', text: '↗️ Открыть заявку', url: 'https://blik.tgiek.ru/tickets/ticket-1' });
   });
 
   it('не отправляет отложенное уведомление после отвязки', async () => {
