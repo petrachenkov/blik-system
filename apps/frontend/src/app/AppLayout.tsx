@@ -36,7 +36,7 @@ import {
 } from '@ant-design/icons';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { useRef, useState } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { useAuth } from '../shared/auth/AuthContext';
 import { ROLE_COLORS, ROLE_LABELS, isStaffRole } from '../shared/labels';
 import { NotificationBell } from '../features/notifications/NotificationBell';
@@ -50,6 +50,13 @@ import { completeOnboarding } from '../shared/api/auth';
 
 const { Header, Sider, Content } = Layout;
 const SIDER_BG = '#0f1a2e';
+
+type NavigationItem = {
+  key: string;
+  label: string;
+  icon?: ReactNode;
+  children?: NavigationItem[];
+};
 
 export function AppLayout() {
   const { user, logout, refetchMe } = useAuth();
@@ -130,95 +137,97 @@ export function AppLayout() {
     },
   ];
 
-  // Пункты сисадмина разбиты на именованные группы (см. фидбэк — плоский список
-  // из 7+ пунктов было тяжело сканировать глазами в поисках нужного раздела).
-  const menuItems = [
-    ...(isStaffRole(user.role)
+  const isAdmin = user.role === 'ADMIN';
+  const calendarItem = { key: '/calendar', icon: <CalendarOutlined />, label: 'Календарь' };
+  const cartridgesItem = { key: '/cartridges', icon: <PrinterOutlined />, label: 'Картриджи' };
+
+  const menuItems: NavigationItem[] = [
+    ...(!isTeacher
       ? [{ key: '/dashboard', icon: <HomeOutlined />, label: 'Главная' }]
       : []),
     { key: '/tickets', icon: <UnorderedListOutlined />, label: 'Заявки' },
-    ...(user.role === 'ADMIN' ? [{ key: '/services', icon: <AppstoreOutlined />, label: 'Сервисы' }] : []),
-    ...(isStaffRole(user.role) && visitsEnabled
-      ? [{ key: '/calendar', icon: <CalendarOutlined />, label: 'Календарь' }]
-      : []),
     { key: '/tickets/new', icon: <PlusOutlined />, label: 'Новая заявка' },
-    // База знаний — все, кто реально решает заявки (сисадмин + практикант).
-    ...(isStaffRole(user.role)
-      ? [{ key: '/knowledge', icon: <ReadOutlined />, label: 'База знаний' }]
+    ...(!isTeacher ? [{ key: '/knowledge', icon: <ReadOutlined />, label: 'База знаний' }] : []),
+    ...(isAdmin ? [{ key: '/services', icon: <AppstoreOutlined />, label: 'Сервисы' }] : []),
+    ...(!isTeacher && visitsEnabled
+      ? [isAdmin ? {
+          key: 'group-scheduling',
+          label: 'Календарь и визиты',
+          children: [
+            calendarItem,
+            { key: '/admin/working-hours', icon: <CarryOutOutlined />, label: 'Рабочие часы визитов' },
+          ],
+        } : calendarItem]
       : []),
-    // Группа "Картриджи" — вне ADMIN-блока ниже, т.к. заявку (/cartridges) подаёт любой
-    // преподаватель, а приём с заправки сканером — сисадмин+практикант (см. план "Печать
-    // этикеток картриджей"); остальные три пункта внутри — по-прежнему только сисадмину.
-    {
+    isTeacher ? cartridgesItem : {
       key: 'group-cartridges',
-      type: 'group' as const,
-      label: 'Картриджи',
+      label: cartridgesItem.label,
       children: [
-        { key: '/cartridges', icon: <PrinterOutlined />, label: 'Заявки' },
-        ...(isStaffRole(user.role)
-          ? [{ key: '/admin/cartridge-arrival', icon: <QrcodeOutlined />, label: 'Приём с заправки (сканер)' }]
-          : []),
-        ...(user.role === 'ADMIN'
+        { ...cartridgesItem, label: 'Заявки на заправку' },
+        { key: '/admin/cartridge-arrival', icon: <QrcodeOutlined />, label: 'Приём с заправки' },
+        ...(isAdmin
           ? [
-              { key: '/admin/cartridge-reports', icon: <FileExcelOutlined />, label: 'Отчёты' },
-              { key: '/admin/cartridge-archive', icon: <InboxOutlined />, label: 'Архив заправленных' },
               { key: '/admin/refill-events', icon: <CalendarOutlined />, label: 'Плановые заправки' },
+              { key: '/admin/cartridge-reports', icon: <FileExcelOutlined />, label: 'Отчёты по заправке' },
+              { key: '/admin/cartridge-archive', icon: <InboxOutlined />, label: 'Архив заправленных' },
             ]
           : []),
       ],
     },
-    ...(user.role === 'ADMIN'
+    ...(isAdmin
       ? [
           {
             key: 'group-directory',
-            type: 'group' as const,
-            label: 'Пользователи и справочники',
+            label: 'Справочники',
             children: [
-              { key: '/admin/users', icon: <TeamOutlined />, label: 'Пользователи' },
-              { key: '/admin/categories', icon: <TagsOutlined />, label: 'Категории' },
-              { key: '/admin/tags', icon: <TagsOutlined />, label: 'Теги' },
+              { key: '/admin/categories', icon: <TagsOutlined />, label: 'Категории заявок' },
+              { key: '/admin/tags', icon: <TagsOutlined />, label: 'Теги заявок' },
               { key: '/admin/locations', icon: <EnvironmentOutlined />, label: 'Локации' },
-              { key: '/admin/sla', icon: <ClockCircleOutlined />, label: 'SLA' },
+            ],
+          },
+          {
+            key: 'group-ticket-management',
+            label: 'Настройки и архив заявок',
+            children: [
+              { key: '/admin/sla', icon: <ClockCircleOutlined />, label: 'Сроки SLA' },
               { key: '/admin/text-snippets', icon: <FileTextOutlined />, label: 'Шаблоны текста' },
               { key: '/admin/ticket-archive', icon: <InboxOutlined />, label: 'Архив заявок' },
             ],
           },
           {
+            key: 'group-accounts',
+            label: 'Учётные записи',
+            children: [
+              { key: '/admin/users', icon: <TeamOutlined />, label: 'Пользователи' },
+              { key: '/admin/login-log', icon: <SafetyOutlined />, label: 'Журнал входов' },
+            ],
+          },
+          {
             key: 'group-notifications',
-            type: 'group' as const,
-            label: 'Уведомления',
+            label: 'Оповещения',
             children: [
               { key: '/admin/broadcast', icon: <NotificationOutlined />, label: 'Рассылка' },
               { key: '/admin/announcement', icon: <SoundOutlined />, label: 'Объявление' },
               { key: '/admin/quiet-hours', icon: <ClockCircleOutlined />, label: 'Тихие часы' },
-              ...(visitsEnabled
-                ? [{ key: '/admin/working-hours', icon: <CarryOutOutlined />, label: 'Рабочие часы визитов' }]
-                : []),
             ],
           },
           {
             key: 'group-analytics',
-            type: 'group' as const,
-            label: 'Аналитика',
-            children: [{ key: '/admin/assignee-stats', icon: <BarChartOutlined />, label: 'Статистика исполнителей' }],
-          },
-          {
-            key: 'group-security',
-            type: 'group' as const,
-            label: 'Безопасность',
-            children: [{ key: '/admin/login-log', icon: <SafetyOutlined />, label: 'Журнал входов' }],
+            label: 'Статистика и панель',
+            children: [
+              { key: '/admin/assignee-stats', icon: <BarChartOutlined />, label: 'Статистика исполнителей' },
+              ...(wallboardEnabled
+                ? [{ key: '/admin/wallboard', icon: <DesktopOutlined />, label: 'Настенная панель' }]
+                : []),
+            ],
           },
           {
             key: 'group-system',
-            type: 'group' as const,
-            label: 'Система',
+            label: 'Обслуживание Blik',
             children: [
               { key: '/admin/system-health', icon: <HeartOutlined />, label: 'Здоровье системы' },
               { key: '/admin/error-log', icon: <BugOutlined />, label: 'Журнал ошибок' },
               { key: '/admin/feature-flags', icon: <ControlOutlined />, label: 'Флаги функциональности' },
-              ...(wallboardEnabled
-                ? [{ key: '/admin/wallboard', icon: <DesktopOutlined />, label: 'Настенная панель' }]
-                : []),
             ],
           },
         ]
@@ -233,7 +242,7 @@ export function AppLayout() {
     { key: '/dashboard', icon: <HomeOutlined />, label: 'Главная' },
     { key: '/tickets', icon: <UnorderedListOutlined />, label: 'Заявки' },
     { key: '/tickets/new', icon: <PlusOutlined />, label: 'Создать' },
-    ...(user.role === 'ADMIN' ? [{ key: '/services', icon: <AppstoreOutlined />, label: 'Сервисы' }] : []),
+    ...(isAdmin ? [{ key: '/services', icon: <AppstoreOutlined />, label: 'Сервисы' }] : []),
     { key: 'more', icon: <MenuOutlined />, label: 'Ещё' },
   ];
 
@@ -241,16 +250,9 @@ export function AppLayout() {
   const activeKey = route.startsWith('/tickets/') && route !== '/tickets/new'
     ? '/tickets'
     : route.startsWith('/knowledge/') ? '/knowledge' : route;
-  const desktopMenuItems = menuItems.map((item) => {
-    if (!item.children) return item;
-    if (isTeacher && item.key === 'group-cartridges') {
-      return { key: '/cartridges', label: item.label, icon: <PrinterOutlined /> };
-    }
-    return { key: item.key, label: item.label, children: item.children };
-  });
-  const activeGroup = desktopMenuItems.find((item) => item.children?.some((child) => child.key === activeKey));
+  const activeGroup = menuItems.find((item) => item.children?.some((child) => child.key === activeKey));
   const activeItem = activeGroup?.children?.find((child) => child.key === activeKey)
-    ?? desktopMenuItems.find((item) => item.key === activeKey);
+    ?? menuItems.find((item) => item.key === activeKey);
   const openGroup = menuExpansion?.route === route ? menuExpansion.key : activeGroup?.key;
 
   return (
@@ -316,7 +318,7 @@ export function AppLayout() {
                 inlineIndent={14}
                 selectedKeys={[activeKey]}
                 openKeys={openGroup ? [openGroup] : []}
-                items={desktopMenuItems}
+                items={menuItems}
                 onOpenChange={(keys) => setMenuExpansion({ route, key: keys.at(-1) })}
                 onClick={({ key }) => navigate(key)}
               />
@@ -324,7 +326,14 @@ export function AppLayout() {
           </Sider>
       )}
       {isMobile && !isTeacher && <Drawer title="Все разделы" placement="left" open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} size="min(320px, 90vw)" styles={{ body: { padding: 0, background: SIDER_BG } }}>
-        <Menu theme="dark" mode="inline" selectedKeys={[location.pathname]} items={menuItems} style={{ background: SIDER_BG }} onClick={({ key }) => { navigate(key); setMobileMenuOpen(false); }} />
+        <Menu
+          theme="dark"
+          mode="inline"
+          selectedKeys={[activeKey]}
+          items={menuItems.map((item) => item.children ? { ...item, type: 'group' as const } : item)}
+          style={{ background: SIDER_BG }}
+          onClick={({ key }) => { navigate(key); setMobileMenuOpen(false); }}
+        />
       </Drawer>}
       <Layout style={{ minWidth: 0 }}>
         <Header
