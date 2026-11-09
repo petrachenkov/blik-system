@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { ALL_FLAG_KEYS, FEATURE_FLAG_KEYS, FEATURE_FLAG_META, MAINTENANCE_FLAG_KEY } from './feature-flags.js';
 
@@ -50,7 +50,7 @@ export class FeatureFlagsService {
         key,
         label: meta.label,
         description: meta.description,
-        enabled: row?.enabled ?? true,
+        enabled: row?.enabled ?? (key !== MAINTENANCE_FLAG_KEY),
         note: row?.note ?? null,
         updatedAt: row?.updatedAt ?? null,
         updatedByName: row?.updatedBy?.fullName ?? null,
@@ -60,6 +60,7 @@ export class FeatureFlagsService {
   }
 
   async set(key: string, enabled: boolean, note: string | null, userId: string) {
+    if (!ALL_FLAG_KEYS.includes(key)) throw new NotFoundException('Флаг не найден');
     const row = await this.prisma.systemFlag.upsert({
       where: { key },
       update: { enabled, note, updatedById: userId },

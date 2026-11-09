@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { VisitsService } from './visits.service.js';
 import type { PrismaService } from '../../prisma/prisma.service.js';
 import type { TicketPolicy } from '../policies/ticket-policy.js';
@@ -53,6 +53,9 @@ function build(overrides: {
 }
 
 const isoOn = (day: number, hour: number) => new Date(2026, 8, day, hour, 0).toISOString();
+
+beforeEach(() => { vi.spyOn(Date, 'now').mockReturnValue(new Date(2026, 8, 12).getTime()); });
+afterEach(() => vi.restoreAllMocks());
 
 describe('VisitsService.reschedule', () => {
   const base = {

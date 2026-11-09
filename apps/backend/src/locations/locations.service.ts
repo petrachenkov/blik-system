@@ -35,10 +35,13 @@ export class LocationsService {
     const location = await this.prisma.location.findUnique({ where: { id } });
     if (!location) throw new NotFoundException('Локация не найдена');
 
-    const usageCount = await this.prisma.ticket.count({ where: { locationId: id } });
-    if (usageCount > 0) {
+    const [tickets, cartridges] = await Promise.all([
+      this.prisma.ticket.count({ where: { locationId: id } }),
+      this.prisma.cartridgeRequest.count({ where: { locationId: id } }),
+    ]);
+    if (tickets + cartridges > 0) {
       throw new ConflictException(
-        `Нельзя удалить локацию — она используется в ${usageCount} заявке(ах). Деактивируйте её вместо удаления.`,
+        'Локация используется в заявках или картриджах. Отключите её, чтобы сохранить историю.',
       );
     }
 

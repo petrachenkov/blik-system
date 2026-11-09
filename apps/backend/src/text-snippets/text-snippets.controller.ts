@@ -7,6 +7,7 @@ import { SnippetKind, UserRole } from '../../generated/prisma/index.js';
 import { TextSnippetsService } from './text-snippets.service.js';
 import { CreateTextSnippetDto } from './dto/create-text-snippet.dto.js';
 import { UpdateTextSnippetDto } from './dto/update-text-snippet.dto.js';
+import { ReorderTextSnippetsDto } from './dto/reorder-text-snippets.dto.js';
 
 @ApiTags('text-snippets')
 @ApiBearerAuth()
@@ -28,6 +29,13 @@ export class TextSnippetsController {
   @Roles(UserRole.ADMIN)
   create(@Body() dto: CreateTextSnippetDto) {
     return this.textSnippetsService.create(dto);
+  }
+
+  @Patch('order')
+  @Roles(UserRole.ADMIN)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  reorder(@Body() dto: ReorderTextSnippetsDto) {
+    return this.textSnippetsService.reorder(dto.kind, dto.ids);
   }
 
   @Patch(':id')

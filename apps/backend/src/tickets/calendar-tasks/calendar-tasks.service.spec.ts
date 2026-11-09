@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CalendarTasksService } from './calendar-tasks.service.js';
 import type { PrismaService } from '../../prisma/prisma.service.js';
 import type { TicketPolicy } from '../policies/ticket-policy.js';
@@ -43,6 +43,9 @@ function build(opts: { hours?: typeof ALWAYS_OPEN; task?: Record<string, unknown
 }
 
 const iso = (d: number, h: number, min = 0) => new Date(2026, 8, d, h, min).toISOString();
+
+beforeEach(() => { vi.spyOn(Date, 'now').mockReturnValue(new Date(2026, 8, 12).getTime()); });
+afterEach(() => vi.restoreAllMocks());
 
 describe('CalendarTasksService.create', () => {
   it('создаёт отдельную задачу в рабочее время', async () => {

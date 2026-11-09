@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { shortTicketNumber } from '../common/utils/ticket-number.js';
@@ -226,20 +226,32 @@ export class NotificationsService {
    * сервиса, вызывается напрямую из контроллера, а не через EventEmitter2 — это не побочный
    * эффект доменного действия где-то ещё, а прямая одноразовая команда администратора.
    */
-  async sendManual(params: { actorId: string; title: string; body: string; targetUserId?: string }) {
-    let userIds: string[];
-    if (params.targetUserId) {
-      userIds = [params.targetUserId];
-    } else {
-      const all = await this.prisma.user.findMany({ where: { isActive: true }, select: { id: true } });
-      userIds = all.map((u) => u.id);
-    }
+  async sendManual(params: { title: string; body: string; targetUserId?: string }) {
+    const type = NotificationType.ADMIN_BROADCAST;
+    const title = shortTicketNumber(params.title);
+    return this.prisma.$transaction(async (tx) => {
+      const users = await tx.user.findMany({
+        where: { isActive: true, id: params.targetUserId },
+        select: {
+          id: true,
+          notificationPreferences: { where: { type }, select: { enabled: true, push: true } },
+        },
+      });
+      if (params.targetUserId !== undefined && !users.length) throw new NotFoundException('Получатель недоступен');
+      const recipients = users.filter((user) => user.notificationPreferences[0]?.enabled !== false);
+      if (!recipients.length) return { count: 0 };
 
-    await this.notifyUsers({
-      userIds,
-      type: NotificationType.ADMIN_BROADCAST,
-      title: params.title,
-      body: params.body,
+      const pushIds = new Set(recipients.filter((user) => user.notificationPreferences[0]?.push !== false).map((user) => user.id));
+      const notifications = await tx.notification.createManyAndReturn({
+        data: recipients.map((user) => ({ userId: user.id, type, title, body: params.body })),
+        select: { id: true, userId: true },
+      });
+      await tx.pendingChannelDelivery.createMany({
+        data: notifications.flatMap((notification) => this.channels
+          .filter((channel) => !channel.interruptive || pushIds.has(notification.userId))
+          .map((channel) => ({ notificationId: notification.id, channel: channel.channel }))),
+      });
+      return { count: notifications.length };
     });
   }
 

@@ -69,9 +69,8 @@ export class NotificationsController {
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN)
   @Post('broadcast')
-  broadcast(@CurrentUser() user: AuthenticatedUser, @Body() dto: BroadcastNotificationDto) {
+  broadcast(@Body() dto: BroadcastNotificationDto) {
     return this.notificationsService.sendManual({
-      actorId: user.id,
       title: dto.title,
       body: dto.body,
       targetUserId: dto.targetUserId,

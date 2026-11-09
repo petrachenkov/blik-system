@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { SnippetKind } from '../../generated/prisma/index.js';
 import type { CreateTextSnippetDto } from './dto/create-text-snippet.dto.js';
@@ -22,6 +22,22 @@ export class TextSnippetsService {
     return this.prisma.textSnippet.create({
       data: { kind: dto.kind, title: dto.title, body: dto.body },
     });
+  }
+
+  async reorder(kind: SnippetKind, ids: string[]): Promise<void> {
+    const snippets = await this.prisma.textSnippet.findMany({
+      where: { kind },
+      select: { id: true },
+      orderBy: { id: 'asc' },
+    });
+    const positions = new Map(ids.map((id, index) => [id, index]));
+    if (snippets.length !== ids.length || snippets.some(({ id }) => !positions.has(id))) {
+      throw new ConflictException('Список шаблонов изменился. Повторите действие после обновления списка.');
+    }
+    await this.prisma.$transaction(snippets.map(({ id }) => this.prisma.textSnippet.update({
+      where: { id },
+      data: { sortOrder: positions.get(id)! },
+    })));
   }
 
   async update(id: string, dto: UpdateTextSnippetDto) {

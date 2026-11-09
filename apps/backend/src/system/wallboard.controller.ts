@@ -51,8 +51,10 @@ export class WallboardController {
   @Post('kiosk-tokens')
   async createKioskToken(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreateKioskTokenDto) {
     const created = await this.kioskTokens.create(dto.label, user.id);
-    const base = this.config.get('CORS_ORIGIN', { infer: true });
-    return { ...created, url: `${base}/wallboard?k=${created.token}` };
+    const base = this.config.get('CORS_ORIGIN', { infer: true }).split(',')[0].trim();
+    const url = new URL('/wallboard', base);
+    url.searchParams.set('k', created.token);
+    return { ...created, url: url.toString() };
   }
 
   @ApiBearerAuth()

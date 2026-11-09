@@ -30,6 +30,7 @@ export function WallboardKioskPage() {
   const revokeMutation = useMutation({
     mutationFn: (id: string) => revokeKioskToken(id),
     onSuccess: () => { void invalidate(); message.success('Ссылка отозвана'); },
+    onError: (error) => message.error(extractErrorMessage(error, 'Не удалось отозвать ссылку')),
   });
 
   return (
@@ -67,9 +68,13 @@ export function WallboardKioskPage() {
                 <Input readOnly value={freshUrl} />
                 <Button
                   icon={<CopyOutlined />}
-                  onClick={() => {
-                    void navigator.clipboard.writeText(freshUrl);
-                    message.success('Скопировано');
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(freshUrl);
+                      message.success('Скопировано');
+                    } catch {
+                      message.error('Скопируйте ссылку вручную из поля');
+                    }
                   }}
                 >
                   Копировать

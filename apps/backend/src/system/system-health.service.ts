@@ -29,15 +29,16 @@ export class SystemHealthService {
   ) {}
 
   async check() {
-    const [db, ldap, webPush, disk] = await Promise.all([
+    const [db, ldap, webPush, disk, max] = await Promise.all([
       this.checkDb(),
       this.checkLdap(),
       this.checkWebPush(),
       this.checkDisk(),
+      this.checkMax(),
     ]);
     return {
       generatedAt: new Date().toISOString(),
-      components: { db, ldap, webPush, disk, max: { status: 'disabled' as ComponentStatus } },
+      components: { db, ldap, webPush, disk, max },
     };
   }
 
@@ -63,8 +64,28 @@ export class SystemHealthService {
     if (!this.webPush.isVapidConfigured) {
       return { status: 'disabled', configured: false, subscriptions: 0 };
     }
-    const subscriptions = await this.prisma.webPushSubscription.count();
+    const subscriptions = await withTimeout(this.prisma.webPushSubscription.count(), null);
+    if (subscriptions === null) return { status: 'down', configured: true, subscriptions: 0 };
     return { status: 'ok', configured: true, subscriptions };
+  }
+
+  private async checkMax(): Promise<{ status: ComponentStatus; latencyMs?: number; error?: string }> {
+    const token = this.config.get('MAX_BOT_TOKEN', { infer: true });
+    if (!token) return { status: 'disabled' };
+    const startedAt = Date.now();
+    try {
+      const response = await fetch('https://platform-api2.max.ru/me', {
+        headers: { Authorization: token },
+        signal: AbortSignal.timeout(TIMEOUT_MS),
+        redirect: 'error',
+      });
+      await response.body?.cancel();
+      return response.ok
+        ? { status: 'ok', latencyMs: Date.now() - startedAt }
+        : { status: 'down', error: `MAX API: HTTP ${response.status}` };
+    } catch {
+      return { status: 'down', error: 'MAX API недоступен (сеть, TLS или тайм-аут)' };
+    }
   }
 
   private async checkDisk(): Promise<{ status: ComponentStatus; freeBytes: number; totalBytes: number; usedPercent: number; error?: string }> {

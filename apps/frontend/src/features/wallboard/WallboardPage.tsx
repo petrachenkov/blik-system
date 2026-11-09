@@ -5,6 +5,7 @@ import { useSearchParams } from 'react-router-dom';
 import dayjs from 'dayjs';
 import { HorizontalBarChart } from '../../shared/charts/HorizontalBarChart';
 import { fetchWallboardSnapshot } from '../../shared/api/wallboard';
+import { useAuth } from '../../shared/auth/AuthContext';
 
 const QUEUE_LABELS: Record<string, string> = {
   NEW: 'Новые',
@@ -38,10 +39,13 @@ function Tile({ label, value, accent }: { label: string; value: number | string;
 export function WallboardPage() {
   const [params] = useSearchParams();
   const kioskToken = params.get('k');
+  const { user, isLoading } = useAuth();
+  const canOpen = user?.role === 'ADMIN' || user?.role === 'INTERN';
 
   const { data, error, dataUpdatedAt } = useQuery({
-    queryKey: ['wallboard', kioskToken],
+    queryKey: ['wallboard', kioskToken, kioskToken ? null : user?.id],
     queryFn: () => fetchWallboardSnapshot(kioskToken),
+    enabled: Boolean(kioskToken || (!isLoading && canOpen)),
     refetchInterval: 15_000,
     retry: false,
   });
@@ -62,7 +66,7 @@ export function WallboardPage() {
     };
   }, [data]);
 
-  if (error) {
+  if (error || (!kioskToken && !isLoading && !canOpen)) {
     return (
       <div style={{ minHeight: '100vh', background: BG, color: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: 40 }}>
         <div>

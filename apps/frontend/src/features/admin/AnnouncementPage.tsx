@@ -27,7 +27,12 @@ export function AnnouncementPage() {
 
   const clearMutation = useMutation({
     mutationFn: clearAnnouncement,
-    onSuccess: () => { form.resetFields(); void invalidate(); message.success('Баннер убран'); },
+    onSuccess: () => {
+      form.setFieldValue('text', '');
+      queryClient.setQueryData(['announcement'], { text: null, updatedAt: null });
+      void invalidate();
+      message.success('Баннер убран');
+    },
     onError: (error) => message.error(extractErrorMessage(error, 'Не удалось убрать баннер')),
   });
 

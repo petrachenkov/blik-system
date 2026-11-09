@@ -1,7 +1,7 @@
 import { ResponsiveTable as Table } from '../../shared/components/ResponsiveTable';
 import { Button, Card, Popconfirm, Space, Tag, Typography, App as AntdApp } from 'antd';
 import { DownloadOutlined } from '@ant-design/icons';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import dayjs from 'dayjs';
 import { fetchCartridges } from '../../shared/api/cartridges';
@@ -14,10 +14,13 @@ export function CartridgeReportsPage() {
   const { message } = AntdApp.useApp();
   const queryClient = useQueryClient();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [page, setPage] = useState(1);
+  const pageSize = 20;
 
-  const { data: collected, isLoading: collectedLoading } = useQuery({
-    queryKey: ['cartridges', { status: 'COLLECTED' }],
-    queryFn: () => fetchCartridges({ status: 'COLLECTED', pageSize: 100 }),
+  const { data: collected, isLoading: collectedLoading, isPlaceholderData } = useQuery({
+    queryKey: ['cartridges', { status: 'COLLECTED', page, pageSize }],
+    queryFn: () => fetchCartridges({ status: 'COLLECTED', page, pageSize }),
+    placeholderData: keepPreviousData,
   });
 
   const { data: reports = [], isLoading: reportsLoading } = useQuery({
@@ -29,6 +32,7 @@ export function CartridgeReportsPage() {
     mutationFn: (requestIds: string[]) => generateCartridgeReport(requestIds),
     onSuccess: () => {
       setSelectedIds([]);
+      setPage(1);
       void queryClient.invalidateQueries({ queryKey: ['cartridges'] });
       void queryClient.invalidateQueries({ queryKey: ['cartridge-reports'] });
       message.success('Отчёт сформирован');
@@ -44,6 +48,11 @@ export function CartridgeReportsPage() {
       message.success('Отчёт закрыт, заявки заправлены');
     },
     onError: (error) => message.error(extractErrorMessage(error, 'Не удалось закрыть отчёт')),
+  });
+
+  const downloadMutation = useMutation({
+    mutationFn: (report: CartridgeReport) => downloadCartridgeReport(report.id, report.filename),
+    onError: (error) => message.error(extractErrorMessage(error, 'Не удалось скачать отчёт')),
   });
 
   return (
@@ -64,11 +73,11 @@ export function CartridgeReportsPage() {
         </Space>
         <Table<CartridgeRequest>
           rowKey="id"
-          loading={collectedLoading}
-          dataSource={collected?.items ?? []}
-          pagination={false}
+          loading={collectedLoading || isPlaceholderData}
+          dataSource={isPlaceholderData ? [] : collected?.items}
+          pagination={{ current: page, pageSize, total: collected?.total ?? 0, showSizeChanger: false, onChange: setPage }}
           scroll={{ x: 'max-content' }}
-          rowSelection={{ selectedRowKeys: selectedIds, onChange: (keys) => setSelectedIds(keys as string[]) }}
+          rowSelection={{ preserveSelectedRowKeys: true, selectedRowKeys: selectedIds, onChange: (keys) => setSelectedIds(keys as string[]) }}
           columns={[
             { title: 'Код', dataIndex: 'code' },
             { title: 'Локация', render: (_, r) => `${r.location.building}, каб. ${r.location.room}` },
@@ -107,7 +116,7 @@ export function CartridgeReportsPage() {
               title: '',
               render: (_, r) => (
                 <Space>
-                  <Button size="small" icon={<DownloadOutlined />} onClick={() => downloadCartridgeReport(r.id, r.filename)}>
+                  <Button size="small" icon={<DownloadOutlined />} loading={downloadMutation.isPending && downloadMutation.variables?.id === r.id} onClick={() => downloadMutation.mutate(r)}>
                     Скачать
                   </Button>
                   {r.status === 'GENERATED' && (

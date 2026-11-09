@@ -89,8 +89,7 @@ export class AuthService {
       try {
         ldapInfo = await this.ldapService.verifyCredentials(username, password);
       } catch (error) {
-        // verifyCredentials бросает UnauthorizedException, если сервер каталога недоступен
-        // (см. ldap.service.ts) — отличаем от банально неверного пароля в журнале входов.
+        // Отличаем недоступность каталога от неверного пароля в журнале входов.
         await this.recordLoginEvent({ username, result: LoginEventResult.LDAP_UNAVAILABLE, ctx });
         throw error;
       }
@@ -100,6 +99,10 @@ export class AuthService {
       }
 
       authenticatedUser = await this.usersService.upsertFromLdap(ldapInfo);
+      if (authenticatedUser.source === UserSource.LOCAL) {
+        await this.recordLoginEvent({ username, result: LoginEventResult.INVALID_CREDENTIALS, ctx });
+        throw new UnauthorizedException('Неверный логин или пароль');
+      }
       if (!authenticatedUser.isActive) {
         await this.recordLoginEvent({ username, userId: authenticatedUser.id, result: LoginEventResult.ACCOUNT_DISABLED, ctx });
         throw new UnauthorizedException('Учётная запись отключена');

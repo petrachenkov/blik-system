@@ -1,6 +1,6 @@
-import { Injectable, Logger, ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Client, type ClientOptions } from 'ldapts';
+import { Client, InvalidCredentialsError, type ClientOptions, type Entry } from 'ldapts';
 import { readFileSync } from 'node:fs';
 import type { Env } from '../../config/env.schema.js';
 
@@ -10,6 +10,29 @@ export interface LdapUserInfo {
   email?: string;
   department?: string;
   isStaff: boolean;
+}
+
+const USER_ATTRIBUTES = ['samaccountname', 'displayname', 'mail', 'department', 'useraccountcontrol'];
+
+function normalizeAttributes(entry: Entry): Record<string, Entry[string]> {
+  return Object.fromEntries(Object.entries(entry).map(([name, value]) => [name.toLowerCase(), value]));
+}
+
+function isDisabled(attributes: ReturnType<typeof normalizeAttributes>): boolean {
+  const flags = Number(attributes.useraccountcontrol);
+  return Number.isFinite(flags) && (flags & 0x2) !== 0;
+}
+
+function readUserInfo(attributes: ReturnType<typeof normalizeAttributes>, isStaff: boolean): LdapUserInfo {
+  const username = String(attributes.samaccountname ?? '').trim();
+  if (!username) throw new Error('LDAP вернул запись без sAMAccountName');
+  return {
+    username,
+    fullName: String(attributes.displayname ?? '').trim() || username,
+    email: String(attributes.mail ?? '') || undefined,
+    department: String(attributes.department ?? '') || undefined,
+    isStaff,
+  };
 }
 
 // Экранирует спецсимволы LDAP-фильтра (RFC 4515: \, *, (, ), NUL), чтобы исключить
@@ -45,16 +68,20 @@ export class LdapService {
    */
   private buildClientOptions(): ClientOptions {
     const url = this.config.get('LDAP_URL', { infer: true });
+    const address = new URL(url);
     const rejectUnauthorized = this.config.get('LDAP_TLS_REJECT_UNAUTHORIZED', { infer: true });
     const caPath = this.config.get('LDAP_TLS_CA_PATH', { infer: true });
+    // ldapts включает TLS даже для ldap://, если передать tlsOptions.
+    // Для настроек с CA или явным портом LDAPS сохраняем защищённое подключение.
+    const useTls = address.protocol === 'ldaps:' || address.port === '636' || Boolean(caPath);
 
     return {
       url,
       connectTimeout: 5000,
-      tlsOptions: {
-        rejectUnauthorized,
-        ...(caPath ? { ca: [readFileSync(caPath)] } : {}),
-      },
+      timeout: 5000,
+      ...(useTls ? {
+        tlsOptions: { rejectUnauthorized, ...(caPath ? { ca: [readFileSync(caPath)] } : {}) },
+      } : {}),
     };
   }
 
@@ -75,16 +102,17 @@ export class LdapService {
     const baseDn = this.config.get('LDAP_BASE_DN', { infer: true });
     const staffGroupDn = this.config.get('LDAP_STAFF_GROUP_DN', { infer: true });
 
-    const client = new Client(this.buildClientOptions());
-
+    let client: Client | undefined;
     try {
+      const options = this.buildClientOptions();
+      client = new Client(options);
       await client.bind(bindDn, bindPassword);
 
       const safeUsername = escapeLdapFilterValue(username);
       const { searchEntries } = await client.search(baseDn, {
         scope: 'sub',
         filter: `(&(objectClass=user)(sAMAccountName=${safeUsername}))`,
-        attributes: ['dn', 'sAMAccountName', 'displayName', 'mail', 'department', 'memberOf', 'userAccountControl'],
+        attributes: [...USER_ATTRIBUTES, 'memberof'],
       });
 
       if (searchEntries.length === 0) {
@@ -93,31 +121,27 @@ export class LdapService {
       }
 
       const entry = searchEntries[0];
-      const userDn = entry.dn;
+      const attributes = normalizeAttributes(entry);
 
       // ACCOUNTDISABLE = 0x2. Если бит установлен — учётка отключена в AD.
-      const uac = Number(entry.userAccountControl ?? 0);
-      if (Number.isFinite(uac) && (uac & 0x2) !== 0) {
+      if (isDisabled(attributes)) {
         this.logger.warn(`LDAP: учётная запись "${username}" отключена в AD`);
         return null;
       }
 
       // Повторный bind под найденным DN — проверка пароля.
-      const userClient = new Client(this.buildClientOptions());
+      const userClient = new Client(options);
       try {
-        await userClient.bind(userDn, password);
-      } catch {
+        await userClient.bind(entry.dn, password);
+      } catch (error) {
+        if (!(error instanceof InvalidCredentialsError)) throw error;
         this.logger.warn(`LDAP: неверный пароль для "${username}"`);
         return null;
       } finally {
         await userClient.unbind().catch(() => undefined);
       }
 
-      const memberOf = Array.isArray(entry.memberOf)
-        ? entry.memberOf
-        : entry.memberOf
-          ? [entry.memberOf]
-          : [];
+      const memberOf = [attributes.memberof ?? []].flat();
       const isStaff = memberOf.some(
         (group) => String(group).toLowerCase() === staffGroupDn.toLowerCase(),
       );
@@ -126,20 +150,12 @@ export class LdapService {
       // иначе разный регистр/написание при входе создаёт второй дублирующий аккаунт вместо
       // того, чтобы найти уже существующего пользователя (в т.ч. заведённого через
       // «Подтянуть сотрудников из AD», где username берётся из entry.sAMAccountName так же).
-      const canonicalUsername = String(entry.sAMAccountName ?? username);
-
-      return {
-        username: canonicalUsername,
-        fullName: String(entry.displayName ?? canonicalUsername),
-        email: entry.mail ? String(entry.mail) : undefined,
-        department: entry.department ? String(entry.department) : undefined,
-        isStaff,
-      };
+      return readUserInfo(attributes, isStaff);
     } catch (error) {
       this.logger.error('Ошибка обращения к LDAP-серверу', error instanceof Error ? error.stack : error);
-      throw new UnauthorizedException('Сервер каталога недоступен, попробуйте позже');
+      throw new ServiceUnavailableException('Сервер каталога недоступен, попробуйте позже');
     } finally {
-      await client.unbind().catch(() => undefined);
+      await client?.unbind().catch(() => undefined);
     }
   }
 
@@ -149,8 +165,9 @@ export class LdapService {
    */
   async checkConnection(): Promise<{ ok: boolean; latencyMs: number; error?: string }> {
     const startedAt = Date.now();
-    const client = new Client(this.buildClientOptions());
+    let client: Client | undefined;
     try {
+      client = new Client(this.buildClientOptions());
       await client.bind(
         this.config.get('LDAP_BIND_DN', { infer: true }),
         this.config.get('LDAP_BIND_PASSWORD', { infer: true }),
@@ -163,7 +180,7 @@ export class LdapService {
         error: error instanceof Error ? error.message : String(error),
       };
     } finally {
-      await client.unbind().catch(() => undefined);
+      await client?.unbind().catch(() => undefined);
     }
   }
 
@@ -180,9 +197,9 @@ export class LdapService {
     const baseDn = this.config.get('LDAP_BASE_DN', { infer: true });
     const staffGroupDn = this.config.get('LDAP_STAFF_GROUP_DN', { infer: true });
 
-    const client = new Client(this.buildClientOptions());
-
+    let client: Client | undefined;
     try {
+      client = new Client(this.buildClientOptions());
       await client.bind(bindDn, bindPassword);
 
       const safeGroupDn = escapeLdapFilterValue(staffGroupDn);
@@ -190,27 +207,20 @@ export class LdapService {
       // у которых в AD тоже formально objectClass=user (проверенный фильтр из вашей инфраструктуры).
       const { searchEntries } = await client.search(baseDn, {
         scope: 'sub',
+        paged: true,
         filter: `(&(objectCategory=person)(objectClass=user)(memberOf=${safeGroupDn}))`,
-        attributes: ['sAMAccountName', 'displayName', 'mail', 'department', 'userAccountControl'],
+        attributes: USER_ATTRIBUTES,
       });
 
       return searchEntries
-        .filter((entry) => {
-          const uac = Number(entry.userAccountControl ?? 0);
-          return !(Number.isFinite(uac) && (uac & 0x2) !== 0); // пропускаем отключённые в AD учётки
-        })
-        .map((entry) => ({
-          username: String(entry.sAMAccountName),
-          fullName: String(entry.displayName ?? entry.sAMAccountName),
-          email: entry.mail ? String(entry.mail) : undefined,
-          department: entry.department ? String(entry.department) : undefined,
-          isStaff: true,
-        }));
+        .map(normalizeAttributes)
+        .filter((attributes) => !isDisabled(attributes))
+        .map((attributes) => readUserInfo(attributes, true));
     } catch (error) {
       this.logger.error('Ошибка синхронизации сотрудников из LDAP', error instanceof Error ? error.stack : error);
       throw new ServiceUnavailableException('Сервер каталога недоступен, попробуйте позже');
     } finally {
-      await client.unbind().catch(() => undefined);
+      await client?.unbind().catch(() => undefined);
     }
   }
 }

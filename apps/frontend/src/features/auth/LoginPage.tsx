@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Alert, Button, Card, Form, Input, Typography, App as AntdApp } from 'antd';
+import { Alert, Button, Card, Form, Input, Typography } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
 import { ThemeToggle } from '../../shared/theme/ThemeToggle';
@@ -14,32 +14,39 @@ interface LoginFormValues {
   password: string;
 }
 
+function loginErrorMessage(error: unknown): string {
+  if (!isAxiosError(error)) return 'Не удалось войти. Попробуйте позже.';
+  const response = error.response;
+  if (!response) return 'Сервер не ответил. Проверьте подключение и попробуйте снова.';
+  switch (response.status) {
+    case 400: return 'Сервер не смог обработать форму входа. Сообщите администратору (HTTP 400).';
+    case 401: return extractErrorMessage(error, 'Неверный логин или пароль');
+    case 409: return extractErrorMessage(error, 'Этот MAX-аккаунт уже привязан к другому пользователю');
+    case 429: return 'Слишком много попыток входа. Подождите минуту и попробуйте снова.';
+    case 503: return extractErrorMessage(error, 'Сервер временно недоступен. Попробуйте позже.');
+    default: return `Не удалось войти. Попробуйте позже (HTTP ${response.status}).`;
+  }
+}
+
 export function LoginPage() {
-  const { login } = useAuth();
+  const { login, isLoading } = useAuth();
   const navigate = useNavigate();
-  const { message } = AntdApp.useApp();
   const [submitting, setSubmitting] = useState(false);
+  const [loginError, setLoginError] = useState<string>();
   const isSubmittingRef = useRef(false);
   const { data: maintenance } = useQuery({ queryKey: ['system', 'maintenance'], queryFn: fetchMaintenance });
 
   const onFinish = async (values: LoginFormValues) => {
-    if (isSubmittingRef.current) return;
+    if (isSubmittingRef.current || isLoading) return;
     isSubmittingRef.current = true;
     setSubmitting(true);
+    setLoginError(undefined);
 
     try {
-      await login(values.username, values.password);
+      await login(values.username.trim(), values.password);
       navigate('/', { replace: true });
     } catch (error) {
-      let text = 'Не удалось войти. Попробуйте позже.';
-      if (isAxiosError(error) && error.response?.status === 401) text = 'Неверный логин или пароль';
-      else if (isAxiosError(error) && error.response?.status === 409) {
-        text = extractErrorMessage(error, 'Этот MAX-аккаунт уже привязан к другому пользователю');
-      }
-      else if (isAxiosError(error) && error.response?.status === 503) {
-        text = (error.response.data as { message?: string })?.message ?? 'Система на техническом обслуживании';
-      }
-      message.error(text);
+      setLoginError(loginErrorMessage(error));
     } finally {
       isSubmittingRef.current = false;
       setSubmitting(false);
@@ -78,8 +85,9 @@ export function LoginPage() {
             message={maintenance.message || 'Идут технические работы. Вход временно ограничен.'}
           />
         )}
-        <Form<LoginFormValues> layout="vertical" onFinish={onFinish} disabled={submitting}>
-          <Form.Item name="username" label="Логин" rules={[{ required: true, message: 'Введите логин' }]}>
+        {loginError && <Alert type="error" showIcon style={{ marginBottom: 16 }} message={loginError} />}
+        <Form<LoginFormValues> layout="vertical" onFinish={onFinish} disabled={isLoading || submitting}>
+          <Form.Item name="username" label="Логин" rules={[{ required: true, whitespace: true, message: 'Введите логин' }]}>
             <Input prefix={<UserOutlined />} autoFocus autoComplete="username" size="large" />
           </Form.Item>
           <Form.Item name="password" label="Пароль" rules={[{ required: true, message: 'Введите пароль' }]}>

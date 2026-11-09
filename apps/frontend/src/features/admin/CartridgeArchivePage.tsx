@@ -1,8 +1,9 @@
 import { shortTicketNumber } from '../../shared/ticket-number';
 import { ResponsiveTable as Table } from '../../shared/components/ResponsiveTable';
 import { Card, Typography } from 'antd';
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import dayjs from 'dayjs';
+import { useState } from 'react';
 import { fetchCartridges } from '../../shared/api/cartridges';
 import type { CartridgeRequest } from '../../shared/types';
 
@@ -11,9 +12,12 @@ import type { CartridgeRequest } from '../../shared/types';
  * они там только мешают исполнителям искать активные заявки). Здесь — их архив для справки.
  */
 export function CartridgeArchivePage() {
-  const { data, isLoading } = useQuery({
-    queryKey: ['cartridges', { status: 'FILLED' }],
-    queryFn: () => fetchCartridges({ status: 'FILLED', pageSize: 100 }),
+  const [page, setPage] = useState(1);
+  const pageSize = 20;
+  const { data, isLoading, isPlaceholderData } = useQuery({
+    queryKey: ['cartridges', { status: 'FILLED', page, pageSize }],
+    queryFn: () => fetchCartridges({ status: 'FILLED', page, pageSize }),
+    placeholderData: keepPreviousData,
   });
 
   return (
@@ -23,9 +27,9 @@ export function CartridgeArchivePage() {
       </Typography.Paragraph>
       <Table<CartridgeRequest>
         rowKey="id"
-        loading={isLoading}
-        dataSource={data?.items ?? []}
-        pagination={{ pageSize: 20, total: data?.total ?? 0 }}
+        loading={isLoading || isPlaceholderData}
+        dataSource={isPlaceholderData ? [] : data?.items}
+        pagination={{ current: page, pageSize, total: data?.total ?? 0, showSizeChanger: false, onChange: setPage }}
         scroll={{ x: 'max-content' }}
         columns={[
           { title: '№', dataIndex: 'number', render: (value: string) => shortTicketNumber(value), width: 130 },

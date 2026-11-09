@@ -34,8 +34,9 @@ export class UsersController {
   /** Создание локальной (не-AD) учётной записи — только сисадмин (см. план "Локальные учётки"). */
   @Post('local')
   @Roles(UserRole.ADMIN)
-  createLocal(@Body() dto: CreateLocalUserDto) {
-    return this.usersService.createLocal(dto);
+  async createLocal(@Body() dto: CreateLocalUserDto) {
+    const { passwordHash: _passwordHash, ...user } = await this.usersService.createLocal(dto);
+    return user;
   }
 
   /** Удаление учётки с обезличиванием следов — только сисадмин; master и себя удалить нельзя. */
@@ -77,7 +78,8 @@ export class UsersController {
   /** Смена роли пользователя — только сисадмин. */
   @Patch(':id/role')
   @Roles(UserRole.ADMIN)
-  setRole(@Param('id') id: string, @Body() dto: SetRoleDto) {
-    return this.usersService.setRole(id, dto.role);
+  async setRole(@Param('id') id: string, @Body() dto: SetRoleDto) {
+    const { passwordHash: _passwordHash, ...user } = await this.usersService.setRole(id, dto.role);
+    return user;
   }
 }

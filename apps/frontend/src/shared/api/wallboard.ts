@@ -24,22 +24,15 @@ export interface KioskToken {
 }
 
 /**
- * Настенная панель живёт вне AuthProvider и вне apiClient (его 401-интерцептор жёстко
- * редиректит на /login, а панель на телевизоре не должна «прыгать» на форму входа):
- *  - есть kiosk-токен → запрос с ?token= без всякой сессии;
- *  - иначе (сотрудник открыл /wallboard под своей учёткой) → сами меняем refresh-cookie
- *    на короткий access-токен и идём с ним. Refresh не прошёл → бросаем ошибку, страница
- *    покажет экран «откройте по kiosk-ссылке или войдите».
+ * Kiosk-ссылки работают без сессии. При входе сотрудника используем сессию,
+ * которую уже восстановил AuthProvider.
  */
 export async function fetchWallboardSnapshot(kioskToken?: string | null): Promise<WallboardSnapshot> {
   if (kioskToken) {
     const r = await axios.get<WallboardSnapshot>('/api/wallboard/snapshot', { params: { token: kioskToken } });
     return r.data;
   }
-  const refresh = await axios.post<{ accessToken: string }>('/api/auth/refresh', null, { withCredentials: true });
-  const r = await axios.get<WallboardSnapshot>('/api/wallboard/snapshot', {
-    headers: { Authorization: `Bearer ${refresh.data.accessToken}` },
-  });
+  const r = await apiClient.get<WallboardSnapshot>('/wallboard/snapshot');
   return r.data;
 }
 

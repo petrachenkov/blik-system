@@ -102,11 +102,12 @@ export class UsersService {
    * вызывающий сейчас — AuthService.login()). touchLogin=false — массовая синхронизация из AD
    * по кнопке (см. syncFromLdap): человек не логинился, фиктивный "последний вход" ставить нельзя.
    */
-  async upsertFromLdap(info: LdapUserInfo, options: { touchLogin?: boolean } = {}): Promise<User> {
+  async upsertFromLdap(info: LdapUserInfo, options: { touchLogin?: boolean; reactivate?: boolean } = {}): Promise<User> {
     const touchLogin = options.touchLogin ?? true;
     const existing = await this.findByUsername(info.username);
 
     if (existing) {
+      if (existing.source === UserSource.LOCAL) return existing;
       return this.prisma.user.update({
         where: { id: existing.id },
         data: {
@@ -114,6 +115,7 @@ export class UsersService {
           email: info.email,
           department: info.department,
           isStaff: info.isStaff,
+          ...(options.reactivate && info.isStaff ? { isActive: true } : {}),
           ...(touchLogin ? { lastLoginAt: new Date() } : {}),
         },
       });
@@ -142,17 +144,19 @@ export class UsersService {
    */
   async syncFromLdap(): Promise<{ synced: number; deactivated: number }> {
     const members = await this.ldapService.fetchStaffGroupMembers();
-    const memberUsernames = new Set(members.map((m) => m.username));
+    const memberUsernames = new Set(members.map((m) => m.username.toLowerCase()));
 
+    let synced = 0;
     for (const member of members) {
-      await this.upsertFromLdap(member, { touchLogin: false });
+      const user = await this.upsertFromLdap(member, { touchLogin: false, reactivate: true });
+      if (user.source === UserSource.LDAP) synced++;
     }
 
     const staleStaff = await this.prisma.user.findMany({
       where: { source: UserSource.LDAP, isStaff: true, isActive: true },
       select: { id: true, username: true },
     });
-    const toDeactivate = staleStaff.filter((u) => !memberUsernames.has(u.username));
+    const toDeactivate = staleStaff.filter((u) => !memberUsernames.has(u.username.toLowerCase()));
 
     if (toDeactivate.length > 0) {
       await this.prisma.user.updateMany({
@@ -161,7 +165,7 @@ export class UsersService {
       });
     }
 
-    return { synced: members.length, deactivated: toDeactivate.length };
+    return { synced, deactivated: toDeactivate.length };
   }
 
   async touchLastLogin(userId: string): Promise<void> {

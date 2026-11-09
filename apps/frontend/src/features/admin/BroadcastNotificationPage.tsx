@@ -1,4 +1,4 @@
-import { Button, Card, Form, Input, Radio, Select, Typography, App as AntdApp } from 'antd';
+import { Alert, Button, Card, Form, Input, Radio, Select, Typography, App as AntdApp } from 'antd';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { fetchUsers } from '../../shared/api/catalogs';
 import { sendBroadcastNotification } from '../../shared/api/notifications';
@@ -16,18 +16,26 @@ export function BroadcastNotificationPage() {
   const [form] = Form.useForm<FormValues>();
   const scope = Form.useWatch('scope', form) ?? 'ALL';
 
-  const { data: users = [] } = useQuery({ queryKey: ['users'], queryFn: fetchUsers });
+  const { data: users = [], isFetching, error, refetch } = useQuery({
+    queryKey: ['users'], queryFn: fetchUsers, enabled: scope === 'USER',
+  });
 
   const sendMutation = useMutation({
-    mutationFn: (values: FormValues) =>
-      sendBroadcastNotification({
+    mutationFn: (values: FormValues) => {
+      if (values.scope === 'USER' && !values.targetUserId) throw new Error('Выберите получателя');
+      return sendBroadcastNotification({
         title: values.title,
         body: values.body,
         targetUserId: values.scope === 'USER' ? values.targetUserId : undefined,
-      }),
-    onSuccess: () => {
+      });
+    },
+    onSuccess: (result) => {
+      if (result.count === 0) {
+        message.warning('У выбранных получателей отключена рассылка');
+        return;
+      }
       form.resetFields();
-      message.success('Уведомление отправлено');
+      message.success(`Уведомления в системе: ${result.count}. Внешняя доставка поставлена в очередь.`);
     },
     onError: (error) => message.error(extractErrorMessage(error, 'Не удалось отправить уведомление')),
   });
@@ -35,12 +43,13 @@ export function BroadcastNotificationPage() {
   return (
     <Card title="Рассылка уведомлений" style={{ maxWidth: 600 }}>
       <Typography.Paragraph type="secondary">
-        Свободный текст, который придёт получателю как обычное уведомление в системе.
+        Сообщение появится в колокольчике. MAX и push доставляются с учётом личных настроек и тихих часов.
       </Typography.Paragraph>
       <Form<FormValues>
         form={form}
         layout="vertical"
         initialValues={{ scope: 'ALL' }}
+        disabled={sendMutation.isPending}
         onFinish={(values) => sendMutation.mutate(values)}
       >
         <Form.Item name="scope" label="Кому">
@@ -55,6 +64,7 @@ export function BroadcastNotificationPage() {
         {scope === 'USER' && (
           <Form.Item name="targetUserId" label="Получатель" rules={[{ required: true, message: 'Выберите получателя' }]}>
             <Select
+              loading={isFetching}
               showSearch
               placeholder="Выберите пользователя"
               optionFilterProp="label"
@@ -62,11 +72,14 @@ export function BroadcastNotificationPage() {
             />
           </Form.Item>
         )}
+        {scope === 'USER' && error && (
+          <Alert type="error" showIcon message="Не удалось загрузить получателей" action={<Button size="small" onClick={() => void refetch()}>Повторить</Button>} />
+        )}
 
-        <Form.Item name="title" label="Заголовок" rules={[{ required: true, message: 'Введите заголовок' }]}>
+        <Form.Item name="title" label="Заголовок" rules={[{ required: true, whitespace: true, message: 'Введите заголовок' }]}>
           <Input placeholder="Например, Плановые работы в сети" />
         </Form.Item>
-        <Form.Item name="body" label="Текст сообщения" rules={[{ required: true, message: 'Введите текст' }]}>
+        <Form.Item name="body" label="Текст сообщения" rules={[{ required: true, whitespace: true, message: 'Введите текст' }]}>
           <Input.TextArea rows={5} />
         </Form.Item>
         <Form.Item>

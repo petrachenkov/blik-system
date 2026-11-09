@@ -1,7 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import axios from 'axios';
 import { fetchMe, login as apiLogin, loginAndLinkMax, logout as apiLogout } from '../api/auth';
-import { setAccessToken } from '../api/client';
+import { refreshSession, setAccessToken } from '../api/client';
 import type { CurrentUser } from '../types';
 import { getMaxInitData } from './max-init-data';
 
@@ -34,13 +33,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     async function restore() {
       try {
-        const res = await axios.post<{ accessToken: string; user: CurrentUser }>('/api/auth/refresh', null, {
-          withCredentials: true,
-        });
+        const session = await refreshSession();
         if (cancelled) return;
-        setAccessToken(res.data.accessToken);
-        setUser(res.data.user);
+        setAccessToken(session.accessToken);
+        setUser(session.user);
       } catch {
+        if (cancelled) return;
         setAccessToken(null);
         setUser(null);
       } finally {

@@ -5,10 +5,8 @@ import { isWithinQuietHours } from '../common/utils/quiet-hours.js';
 import { NOTIFICATION_CHANNELS, type NotificationChannelProvider } from './channels/notification-channel.interface.js';
 
 /**
- * Раз в 15 минут проверяет, закончились ли "тихие часы" (настройка — /admin/quiet-hours,
- * см. план), и если да — досылает всё, что за это время скопилось в очереди
- * PendingChannelDelivery (см. NotificationsService.notifyUsers — туда попадают уведомления
- * для "прерывающих" каналов, отложенные на время окна).
+ * Доставляет рассылки и уведомления из очереди. В тихие часы обрабатывает
+ * только внутренние уведомления.
  */
 @Injectable()
 export class QuietHoursDeliveryCron {
@@ -19,28 +17,31 @@ export class QuietHoursDeliveryCron {
     @Inject(NOTIFICATION_CHANNELS) private readonly channels: NotificationChannelProvider[],
   ) {}
 
-  @Cron('0 */15 * * * *')
+  @Cron('*/15 * * * * *', { waitForCompletion: true })
   async flushPending() {
     const settings = await this.prisma.notificationSettings.findUnique({ where: { id: 'current' } });
-    if (isWithinQuietHours(new Date(), settings?.quietHoursStart ?? undefined, settings?.quietHoursEnd ?? undefined)) {
-      return; // ещё не закончились — ждём следующего тика
-    }
+    const quiet = isWithinQuietHours(new Date(), settings?.quietHoursStart ?? undefined, settings?.quietHoursEnd ?? undefined);
+    const providers = quiet ? this.channels.filter((channel) => !channel.interruptive) : this.channels;
 
     const pending = await this.prisma.pendingChannelDelivery.findMany({
+      where: { channel: { in: providers.map((provider) => provider.channel) } },
       include: { notification: { include: { user: true } } },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      take: 30,
     });
-    if (pending.length === 0) return;
-
-    for (const item of pending) {
-      const provider = this.channels.find((c) => c.channel === item.channel);
-      if (provider) {
-        await provider.send(item.notification, item.notification.user).catch((error) =>
-          this.logger.error(`Не удалось досослать отложенное уведомление ${item.notificationId}`, error instanceof Error ? error.stack : error),
-        );
-      }
-      await this.prisma.pendingChannelDelivery.delete({ where: { id: item.id } });
+    for (let i = 0; i < pending.length; i += 5) {
+      await Promise.all(pending.slice(i, i + 5).map(async (item) => {
+        const provider = providers.find((channel) => channel.channel === item.channel);
+        const { user } = item.notification;
+        try {
+          if (provider && user.isActive && await provider.isEnabledFor(user)) {
+            await provider.send(item.notification, user);
+          }
+          await this.prisma.pendingChannelDelivery.deleteMany({ where: { id: item.id } });
+        } catch (error) {
+          this.logger.error(`Не удалось доставить уведомление ${item.notificationId}`, error instanceof Error ? error.stack : error);
+        }
+      }));
     }
-
-    this.logger.log(`Досослано отложенных уведомлений после тихих часов: ${pending.length}`);
   }
 }

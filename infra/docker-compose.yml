@@ -18,6 +18,8 @@ services:
       retries: 10
 
   backend:
+    # Git-based redeploy должен собирать обновлённый код даже при наличии старого образа.
+    pull_policy: build
     build:
       context: ../apps/backend
     restart: unless-stopped
@@ -80,6 +82,7 @@ services:
   # имя этого контейнера, Forward Port — 80) и сам получает/продлевает Let's Encrypt
   # сертификат для blik.tgiek.ru через свой UI.
   nginx:
+    pull_policy: build
     build:
       context: ../apps/frontend
     restart: unless-stopped

@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CartridgeReportStatus, CartridgeRequestStatus } from '../../generated/prisma/index.js';
@@ -92,20 +92,26 @@ export class CartridgeReportsService {
     const filename = `${number}.xlsx`;
     const saved = await this.storage.save(buffer, filename);
 
-    const report = await this.prisma.cartridgeReport.create({
-      data: {
-        number,
-        createdById: user.id,
-        filename,
-        storedPath: saved.storedPath,
-        mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        sizeBytes: buffer.byteLength,
-      },
-    });
-
-    await this.prisma.cartridgeRequest.updateMany({
-      where: { id: { in: dto.requestIds } },
-      data: { status: CartridgeRequestStatus.SENT, reportId: report.id },
+    const report = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.cartridgeReport.create({
+        data: {
+          number,
+          createdById: user.id,
+          filename,
+          storedPath: saved.storedPath,
+          mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          sizeBytes: buffer.byteLength,
+        },
+      });
+      const { count } = await tx.cartridgeRequest.updateMany({
+        where: { id: { in: dto.requestIds }, status: CartridgeRequestStatus.COLLECTED },
+        data: { status: CartridgeRequestStatus.SENT, reportId: created.id },
+      });
+      if (count !== requests.length) throw new ConflictException('Список собранных картриджей изменился. Обновите выбор.');
+      return created;
+    }).catch(async (error: unknown) => {
+      await this.storage.delete(saved.storedPath);
+      throw error;
     });
 
     return this.findOneOrThrow(report.id);
@@ -130,16 +136,17 @@ export class CartridgeReportsService {
     const requests = await this.prisma.cartridgeRequest.findMany({ where: { reportId: id }, select: { id: true } });
     const now = new Date();
 
-    await this.prisma.$transaction([
-      this.prisma.cartridgeReport.update({
-        where: { id },
+    await this.prisma.$transaction(async (tx) => {
+      const { count } = await tx.cartridgeReport.updateMany({
+        where: { id, status: CartridgeReportStatus.GENERATED },
         data: { status: CartridgeReportStatus.CLOSED, closedById: user.id, closedAt: now },
-      }),
-      this.prisma.cartridgeRequest.updateMany({
+      });
+      if (!count) throw new ConflictException('Этот отчёт уже закрыт');
+      await tx.cartridgeRequest.updateMany({
         where: { reportId: id },
         data: { status: CartridgeRequestStatus.FILLED, filledAt: now },
-      }),
-    ]);
+      });
+    });
 
     for (const request of requests) {
       const event: CartridgeFilledEvent = { cartridgeRequestId: request.id, actorId: user.id };

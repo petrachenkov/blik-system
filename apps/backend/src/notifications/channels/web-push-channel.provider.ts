@@ -52,7 +52,7 @@ export class WebPushChannelProvider implements NotificationChannelProvider {
     let sentToAny = false;
     for (const sub of subscriptions) {
       try {
-        await webpush.sendNotification({ endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } }, payload);
+        await webpush.sendNotification({ endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } }, payload, { timeout: 10_000 });
         sentToAny = true;
       } catch (error) {
         const statusCode = (error as { statusCode?: number }).statusCode;

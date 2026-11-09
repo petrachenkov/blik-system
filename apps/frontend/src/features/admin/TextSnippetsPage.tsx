@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Button, Card, Form, Input, Popconfirm, Segmented, Switch, Tooltip, Typography, App as AntdApp } from 'antd';
 import { ArrowDownOutlined, ArrowUpOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { createTextSnippet, deleteTextSnippet, fetchTextSnippets, updateTextSnippet } from '../../shared/api/textSnippets';
+import { createTextSnippet, deleteTextSnippet, fetchTextSnippets, reorderTextSnippets, updateTextSnippet } from '../../shared/api/textSnippets';
 import { extractErrorMessage } from '../../shared/api/errors';
 import type { SnippetKind, TextSnippet } from '../../shared/types';
 
@@ -28,7 +28,7 @@ export function TextSnippetsPage() {
     queryFn: () => fetchTextSnippets(kind, true),
   });
 
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: ['text-snippets', kind] });
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: ['text-snippets'] });
 
   const createMutation = useMutation({
     mutationFn: (values: { title: string; body: string }) => createTextSnippet({ kind, ...values }),
@@ -39,11 +39,13 @@ export function TextSnippetsPage() {
   const toggleMutation = useMutation({
     mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) => updateTextSnippet(id, { isActive }),
     onSuccess: () => void invalidate(),
+    onError: (error) => message.error(extractErrorMessage(error, 'Не удалось изменить доступность шаблона')),
   });
 
   const reorderMutation = useMutation({
-    mutationFn: (updates: { id: string; sortOrder: number }[]) => Promise.all(updates.map((u) => updateTextSnippet(u.id, { sortOrder: u.sortOrder }))),
-    onSuccess: () => void invalidate(),
+    mutationFn: (ids: string[]) => reorderTextSnippets(kind, ids),
+    onSettled: invalidate,
+    onError: (error) => message.error(extractErrorMessage(error, 'Не удалось изменить порядок шаблонов')),
   });
 
   const deleteMutation = useMutation({
@@ -56,10 +58,10 @@ export function TextSnippetsPage() {
     const index = data.findIndex((s) => s.id === record.id);
     const neighbor = data[index + direction];
     if (!neighbor) return;
-    reorderMutation.mutate([
-      { id: record.id, sortOrder: neighbor.sortOrder },
-      { id: neighbor.id, sortOrder: record.sortOrder },
-    ]);
+    const ids = data.map((snippet) => snippet.id);
+    ids[index] = neighbor.id;
+    ids[index + direction] = record.id;
+    reorderMutation.mutate(ids);
   };
 
   return (
@@ -107,8 +109,8 @@ export function TextSnippetsPage() {
             width: 90,
             render: (_, record, index) => (
               <>
-                <Button type="text" size="small" icon={<ArrowUpOutlined />} disabled={index === 0} onClick={() => move(record, -1)} />
-                <Button type="text" size="small" icon={<ArrowDownOutlined />} disabled={index === data.length - 1} onClick={() => move(record, 1)} />
+                <Button aria-label="Выше" type="text" size="small" icon={<ArrowUpOutlined />} disabled={reorderMutation.isPending || index === 0} onClick={() => move(record, -1)} />
+                <Button aria-label="Ниже" type="text" size="small" icon={<ArrowDownOutlined />} disabled={reorderMutation.isPending || index === data.length - 1} onClick={() => move(record, 1)} />
               </>
             ),
           },

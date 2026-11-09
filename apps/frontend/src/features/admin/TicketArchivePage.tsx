@@ -2,7 +2,7 @@ import { shortTicketNumber } from '../../shared/ticket-number';
 import { ResponsiveTable as Table } from '../../shared/components/ResponsiveTable';
 import { useState } from 'react';
 import { Button, Card, InputNumber, Space, Switch, Tag, Typography, App as AntdApp } from 'antd';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 import { fetchTicketRetention, updateTicketRetention } from '../../shared/api/system';
@@ -16,6 +16,8 @@ export function TicketArchivePage() {
   const { message } = AntdApp.useApp();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const [page, setPage] = useState(1);
+  const pageSize = 20;
 
   const { data: retention, isLoading: retLoading } = useQuery({
     queryKey: ['ticket-retention'],
@@ -35,14 +37,16 @@ export function TicketArchivePage() {
     onError: (e) => message.error(extractErrorMessage(e, 'Не удалось сохранить')),
   });
 
-  const { data: archived, isLoading: listLoading } = useQuery({
-    queryKey: ['tickets', { archived: true }],
-    queryFn: () => fetchTickets({ archived: true, pageSize: 50, sortBy: 'createdAt', sortOrder: 'desc' }),
+  const { data: archived, isLoading: listLoading, isPlaceholderData } = useQuery({
+    queryKey: ['tickets', { archived: true, page, pageSize }],
+    queryFn: () => fetchTickets({ archived: true, page, pageSize, sortBy: 'createdAt', sortOrder: 'desc' }),
+    placeholderData: keepPreviousData,
   });
 
   const unarchiveMutation = useMutation({
     mutationFn: (id: string) => setTicketArchived(id, false),
     onSuccess: () => {
+      if (archived?.items.length === 1) setPage((current) => Math.max(1, current - 1));
       void queryClient.invalidateQueries({ queryKey: ['tickets'] });
       message.success('Заявка возвращена из архива');
     },
@@ -84,9 +88,9 @@ export function TicketArchivePage() {
         <Table<Ticket>
           rowKey="id"
           size="small"
-          loading={listLoading}
-          dataSource={archived?.items ?? []}
-          pagination={false}
+          loading={listLoading || isPlaceholderData}
+          dataSource={isPlaceholderData ? [] : archived?.items}
+          pagination={{ current: page, pageSize, total: archived?.total ?? 0, showSizeChanger: false, onChange: setPage }}
           scroll={{ x: 'max-content' }}
           onRow={(r) => ({ onClick: () => navigate(`/tickets/${r.id}`), style: { cursor: 'pointer' } })}
           columns={[

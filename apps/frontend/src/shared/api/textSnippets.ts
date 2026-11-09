@@ -16,3 +16,7 @@ export function updateTextSnippet(id: string, data: Partial<Pick<TextSnippet, 't
 export function deleteTextSnippet(id: string) {
   return apiClient.delete(`/text-snippets/${id}`).then((r) => r.data);
 }
+
+export function reorderTextSnippets(kind: SnippetKind, ids: string[]) {
+  return apiClient.patch('/text-snippets/order', { kind, ids });
+}

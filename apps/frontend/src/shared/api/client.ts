@@ -1,4 +1,5 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios';
+import type { LoginResponse } from './auth';
 
 let accessToken: string | null = null;
 
@@ -25,14 +26,16 @@ apiClient.interceptors.request.use((config) => {
 type RetryableConfig = InternalAxiosRequestConfig & { _retry?: boolean };
 
 // Очередь запросов, ожидающих обновления токена, чтобы не слать параллельно несколько /refresh.
-let refreshPromise: Promise<string> | null = null;
+let refreshPromise: Promise<LoginResponse> | null = null;
 
-async function refreshAccessToken(): Promise<string> {
-  const response = await axios.post<{ accessToken: string }>('/api/auth/refresh', null, {
+export function refreshSession(): Promise<LoginResponse> {
+  refreshPromise ??= axios.post<LoginResponse>('/api/auth/refresh', null, {
     withCredentials: true,
+    timeout: 15_000,
+  }).then((response) => response.data).finally(() => {
+    refreshPromise = null;
   });
-  setAccessToken(response.data.accessToken);
-  return response.data.accessToken;
+  return refreshPromise;
 }
 
 apiClient.interceptors.response.use(
@@ -43,10 +46,8 @@ apiClient.interceptors.response.use(
     if (error.response?.status === 401 && originalRequest && !originalRequest._retry && !originalRequest.url?.includes('/auth/')) {
       originalRequest._retry = true;
       try {
-        refreshPromise ??= refreshAccessToken().finally(() => {
-          refreshPromise = null;
-        });
-        const newToken = await refreshPromise;
+        const { accessToken: newToken } = await refreshSession();
+        setAccessToken(newToken);
         originalRequest.headers.Authorization = `Bearer ${newToken}`;
         return apiClient(originalRequest);
       } catch {

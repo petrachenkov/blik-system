@@ -1,13 +1,15 @@
 import { apiClient } from './client';
 import type { CurrentUser } from '../types';
 
+const loginOptions = { timeout: 25_000 };
+
 export interface LoginResponse {
   accessToken: string;
   user: CurrentUser;
 }
 
 export function login(username: string, password: string) {
-  return apiClient.post<LoginResponse>('/auth/login', { username, password }).then((r) => r.data);
+  return apiClient.post<LoginResponse>('/auth/login', { username, password }, loginOptions).then((r) => r.data);
 }
 
 export function logout() {
@@ -34,12 +36,12 @@ export function fetchMaxStatus() {
 
 /** Тихий вход по уже привязанному MAX-аккаунту. */
 export function loginViaMax(initData: string) {
-  return apiClient.post<LoginResponse>('/auth/max', { initData }).then((r) => r.data);
+  return apiClient.post<LoginResponse>('/auth/max', { initData }, loginOptions).then((r) => r.data);
 }
 
 /** Первый вход: логин/пароль Blik + привязка текущего MAX-аккаунта. */
 export function loginAndLinkMax(initData: string, username: string, password: string) {
-  return apiClient.post<LoginResponse>('/auth/max/link', { initData, username, password }).then((r) => r.data);
+  return apiClient.post<LoginResponse>('/auth/max/link', { initData, username, password }, loginOptions).then((r) => r.data);
 }
 
 export function fetchMaxLinkStatus() {

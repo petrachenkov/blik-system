@@ -28,7 +28,7 @@ export interface HealthReport {
     ldap: { status: ComponentStatus; latencyMs: number; error?: string };
     webPush: { status: ComponentStatus; configured: boolean; subscriptions: number };
     disk: { status: ComponentStatus; freeBytes: number; totalBytes: number; usedPercent: number; error?: string };
-    max: { status: ComponentStatus };
+    max: { status: ComponentStatus; latencyMs?: number; error?: string };
   };
 }
 

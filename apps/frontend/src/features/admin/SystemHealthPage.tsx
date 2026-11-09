@@ -1,4 +1,4 @@
-import { Card, Col, Progress, Row, Space, Tag, Typography } from 'antd';
+import { Alert, Button, Card, Col, Progress, Row, Space, Tag, Typography } from 'antd';
 import {
   CheckCircleOutlined,
   CloseCircleOutlined,
@@ -44,7 +44,7 @@ function HealthCard({ title, status, children }: { title: string; status: Status
 }
 
 export function SystemHealthPage() {
-  const { data, isLoading, dataUpdatedAt } = useQuery({
+  const { data, isLoading, isError, dataUpdatedAt, refetch } = useQuery({
     queryKey: ['system', 'health'],
     queryFn: fetchHealth,
     refetchInterval: 20_000,
@@ -57,11 +57,12 @@ export function SystemHealthPage() {
       title="Здоровье системы"
       loading={isLoading && !data}
       extra={
-        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+        data && <Typography.Text type="secondary" style={{ fontSize: 12 }}>
           Обновлено {dayjs(dataUpdatedAt).format('HH:mm:ss')}
         </Typography.Text>
       }
     >
+      {isError && <Alert type="error" showIcon style={{ marginBottom: 16 }} message="Не удалось обновить состояние системы" action={<Button size="small" onClick={() => void refetch()}>Повторить</Button>} />}
       {c && (
         <Row gutter={[16, 16]}>
           <Col xs={24} sm={12} lg={8}>
@@ -104,7 +105,9 @@ export function SystemHealthPage() {
           </Col>
           <Col xs={24} sm={12} lg={8}>
             <HealthCard title="Мессенджер MAX" status={c.max.status}>
-              <Typography.Text type="secondary">Канал не активирован</Typography.Text>
+              {c.max.status === 'disabled' && <Typography.Text type="secondary">Канал не настроен</Typography.Text>}
+              {c.max.latencyMs !== undefined && <Typography.Text type="secondary">Отклик: {c.max.latencyMs} мс</Typography.Text>}
+              {c.max.error && <Typography.Text type="danger">{c.max.error}</Typography.Text>}
             </HealthCard>
           </Col>
         </Row>

@@ -15,7 +15,7 @@ export function markAllNotificationsRead() {
 
 /** Ручная рассылка — только Главный сисадмин. targetUserId не указан -> всем пользователям. */
 export function sendBroadcastNotification(data: { title: string; body: string; targetUserId?: string }) {
-  return apiClient.post<{ id: string }>('/notifications/broadcast', data).then((r) => r.data);
+  return apiClient.post<{ count: number }>('/notifications/broadcast', data).then((r) => r.data);
 }
 
 /** Публичный VAPID-ключ — нужен для pushManager.subscribe (см. план "Push-уведомления"). */
