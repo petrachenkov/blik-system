@@ -290,7 +290,7 @@ export function TicketDetailPage() {
 
   return (
     <Row className="ticket-detail-page" gutter={[16, 16]}>
-      <Col xs={24} lg={16}>
+      <Col xs={24} xl={16}>
         <Card
           // title у antd Card по умолчанию white-space: nowrap + text-overflow: ellipsis
           // (расчёт на однострочный заголовок) — перебивает Space wrap внутри, из-за чего
@@ -342,8 +342,8 @@ export function TicketDetailPage() {
               длинные значения (ФИО, локацию) до переноса по буквам (см. фидбэк со
               скриншотом) — на мобильном каждая пара идёт отдельной строкой. */}
           <details className="ticket-metadata" open={!isMobile}>
-          {isMobile && <summary>Кабинет, исполнитель и сроки</summary>}
-          <Descriptions layout={isMobile ? 'vertical' : 'horizontal'} column={{ xs: 1, sm: 1, md: 2 }} bordered size="small" style={{ marginBottom: 16 }}>
+          <summary>Кабинет, исполнитель и сроки</summary>
+          <Descriptions layout="vertical" column={isMobile ? 1 : 2} bordered size="small" style={{ marginBottom: 16 }}>
             <Descriptions.Item label="Локация">{ticket.location.building}, каб. {ticket.location.room}{ticket.location.label ? ` (${ticket.location.label})` : ''}</Descriptions.Item>
             <Descriptions.Item label="Преподаватель">{ticket.createdBy.fullName}</Descriptions.Item>
             <Descriptions.Item label="Категория">{ticket.category?.name ?? <Typography.Text type="secondary">не задана</Typography.Text>}</Descriptions.Item>
@@ -358,7 +358,7 @@ export function TicketDetailPage() {
                 <SlaCountdown dueAt={ticket.resolutionDueAt} breached={ticket.isResolutionBreached} doneAt={ticket.resolvedAt} />
               </Descriptions.Item>
             )}
-            <Descriptions.Item label="Создана" span={2}>{dayjs(ticket.createdAt).format('DD.MM.YYYY HH:mm')}</Descriptions.Item>
+            <Descriptions.Item label="Создана" span="filled">{dayjs(ticket.createdAt).format('DD.MM.YYYY HH:mm')}</Descriptions.Item>
           </Descriptions>
           </details>
 
@@ -384,7 +384,7 @@ export function TicketDetailPage() {
             </Space>
           </div>
 
-          <Typography.Paragraph>
+          <Typography.Paragraph className="ticket-description">
             <Typography.Text strong>Описание проблемы:</Typography.Text>
             <br />
             {ticket.description}
@@ -779,7 +779,7 @@ export function TicketDetailPage() {
         </Card>
       </Col>
 
-      <Col xs={24} lg={8}>
+      <Col xs={24} xl={8}>
         <Card title="История заявки">
           {(historyQuery.data ?? []).length === 0 ? (
             <Empty description="Пока пусто" image={Empty.PRESENTED_IMAGE_SIMPLE} />

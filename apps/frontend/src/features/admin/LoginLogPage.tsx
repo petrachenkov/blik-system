@@ -31,13 +31,14 @@ export function LoginLogPage() {
         loading={isLoading}
         dataSource={data}
         pagination={{ pageSize: 50 }}
-        scroll={{ x: 'max-content' }}
+        scroll={{ x: 850 }}
+        tableLayout="fixed"
         columns={[
-          { title: 'Время', dataIndex: 'createdAt', render: (v: string) => dayjs(v).format('DD.MM.YYYY HH:mm:ss') },
-          { title: 'Логин', dataIndex: 'username' },
-          { title: 'Пользователь', render: (_, r) => r.user?.fullName ?? <Typography.Text type="secondary">не найден</Typography.Text> },
-          { title: 'Результат', dataIndex: 'result', render: (v: LoginEventResult) => <Tag color={RESULT_COLORS[v]}>{RESULT_LABELS[v]}</Tag> },
-          { title: 'IP', dataIndex: 'ipAddress', render: (v: string | null) => v ?? '—' },
+          { title: 'Время', dataIndex: 'createdAt', width: 148, render: (v: string) => dayjs(v).format('DD.MM.YYYY HH:mm:ss') },
+          { title: 'Логин', dataIndex: 'username', width: 104 },
+          { title: 'Пользователь', width: 176, render: (_, r) => r.user?.fullName ?? <Typography.Text type="secondary">не найден</Typography.Text> },
+          { title: 'Результат', dataIndex: 'result', width: 170, render: (v: LoginEventResult) => <Tag style={{ whiteSpace: 'normal', marginInlineEnd: 0 }} color={RESULT_COLORS[v]}>{RESULT_LABELS[v]}</Tag> },
+          { title: 'IP', dataIndex: 'ipAddress', width: 110, render: (v: string | null) => v ?? '—' },
           {
             title: 'User-Agent',
             dataIndex: 'userAgent',

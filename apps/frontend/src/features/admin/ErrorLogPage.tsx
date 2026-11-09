@@ -39,7 +39,8 @@ export function ErrorLogPage() {
         loading={isLoading}
         dataSource={data}
         pagination={{ pageSize: 30 }}
-        scroll={{ x: 'max-content' }}
+        scroll={{ x: 660 }}
+        tableLayout="fixed"
         onRow={(record) => ({ onClick: () => setSelected(record), style: { cursor: 'pointer' } })}
         columns={[
           {

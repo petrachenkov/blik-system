@@ -12,6 +12,7 @@ import { installGlobalErrorReporting } from './shared/errors/globalErrorReportin
 import { App } from './app/App';
 import './shared/styles/mobile-card-header.css';
 import './shared/styles/mobile.css';
+import './shared/styles/desktop.css';
 
 installGlobalErrorReporting();
 

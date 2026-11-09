@@ -26,6 +26,7 @@ import {
   ControlOutlined,
   DesktopOutlined,
   CarryOutOutlined,
+  DownOutlined,
   HomeOutlined,
   SearchOutlined,
   BellOutlined,
@@ -83,12 +84,8 @@ export function AppLayout() {
   // (не нужен отдельный эффект с синхронным setState при загрузке).
   const [tourOpen, setTourOpen] = useState(() => Boolean(user && !user.onboardingCompletedAt && onboardingTourEnabled));
   const [paletteOpen, setPaletteOpen] = useState(false);
-  // Мобильная вёрстка шапки (см. фидбэк со скриншотом — на узком экране текст с именем/ролью
-  // переносился и вылезал за пределы фиксированной высоты Header, а стандартный триггер
-  // сворачивания Sider при collapsedWidth=0 рисуется отдельным "плавающим" квадратом поверх
-  // контента). Управляем collapsed сами и рисуем свою кнопку-гамбургер внутри Header.
-  const [collapsed, setCollapsed] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [menuExpansion, setMenuExpansion] = useState<{ route: string; key?: string }>();
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.lg;
   // У преподавателя (не staff) в меню всего 3 пункта — на мобильном выезжающий Sider ради
@@ -240,6 +237,22 @@ export function AppLayout() {
     { key: 'more', icon: <MenuOutlined />, label: 'Ещё' },
   ];
 
+  const route = location.pathname;
+  const activeKey = route.startsWith('/tickets/') && route !== '/tickets/new'
+    ? '/tickets'
+    : route.startsWith('/knowledge/') ? '/knowledge' : route;
+  const desktopMenuItems = menuItems.map((item) => {
+    if (!item.children) return item;
+    if (isTeacher && item.key === 'group-cartridges') {
+      return { key: '/cartridges', label: item.label, icon: <PrinterOutlined /> };
+    }
+    return { key: item.key, label: item.label, children: item.children };
+  });
+  const activeGroup = desktopMenuItems.find((item) => item.children?.some((child) => child.key === activeKey));
+  const activeItem = activeGroup?.children?.find((child) => child.key === activeKey)
+    ?? desktopMenuItems.find((item) => item.key === activeKey);
+  const openGroup = menuExpansion?.route === route ? menuExpansion.key : activeGroup?.key;
+
   return (
     <Layout className="app-shell" style={{ minHeight: '100dvh' }}>
       {showBottomNav ? (
@@ -285,52 +298,30 @@ export function AppLayout() {
           })}
         </div>
       ) : (
-        <>
-          {/* Затемнение позади выезжающего меню на мобильном — тап закрывает меню. На десктопе
-              Sider всегда в нормальном потоке (permanent), затемнение не нужно и не рендерится. */}
-          {isMobile && !collapsed && (
-            <div
-              onClick={() => setCollapsed(true)}
-              style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 99 }}
-            />
-          )}
           <Sider
             ref={siderRef}
-            breakpoint="lg"
-            collapsedWidth="0"
+            className="desktop-sidebar"
+            width="clamp(218px, 16.5vw, 254px)"
             trigger={null}
-            collapsed={collapsed}
-            onBreakpoint={setCollapsed}
-            style={{
-              background: SIDER_BG,
-              // На мобильном — фиксированный оверлей поверх всего (включая Header), а не
-              // обычный flex-child, который раньше просто сжимал Content вместо содержимого
-              // (см. фидбэк со скриншотом — текст переносился по буквам в узкую полоску).
-              ...(isMobile ? { position: 'fixed', insetInlineStart: 0, top: 0, bottom: 0, zIndex: 100 } : {}),
-              // Без этого пункты меню ниже высоты экрана были просто недоступны — Sider с
-              // фиксированной высотой (top/bottom: 0) не скроллится сам по себе (см. фидбэк
-              // "меню не листается"), а у сисадмина пунктов меню больше, чем помещается на
-              // экране телефона.
-              overflowY: 'auto',
-            }}
+            style={{ background: SIDER_BG }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#fff', fontSize: 20, fontWeight: 700, padding: '16px 20px' }}>
-              <img src="/logo-blue.png" alt="" style={{ width: 32, height: 32, borderRadius: '50%', background: '#fff' }} />
-              Blik
-            </div>
-            <Menu
-              theme="dark"
-              mode="inline"
-              style={{ background: SIDER_BG }}
-              selectedKeys={[location.pathname]}
-              items={menuItems}
-              onClick={({ key }) => {
-                navigate(key);
-                if (isMobile) setCollapsed(true);
-              }}
-            />
+            <button type="button" className="desktop-brand" onClick={() => navigate('/')} aria-label="Blik — на главную">
+              <img src="/logo-blue.png" alt="" />
+              <span><strong>Blik</strong><small>Техподдержка</small></span>
+            </button>
+            <nav className="desktop-navigation" aria-label="Разделы Blik">
+              <Menu
+                theme="dark"
+                mode="inline"
+                inlineIndent={14}
+                selectedKeys={[activeKey]}
+                openKeys={openGroup ? [openGroup] : []}
+                items={desktopMenuItems}
+                onOpenChange={(keys) => setMenuExpansion({ route, key: keys.at(-1) })}
+                onClick={({ key }) => navigate(key)}
+              />
+            </nav>
           </Sider>
-        </>
       )}
       {isMobile && !isTeacher && <Drawer title="Все разделы" placement="left" open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} size="min(320px, 90vw)" styles={{ body: { padding: 0, background: SIDER_BG } }}>
         <Menu theme="dark" mode="inline" selectedKeys={[location.pathname]} items={menuItems} style={{ background: SIDER_BG }} onClick={({ key }) => { navigate(key); setMobileMenuOpen(false); }} />
@@ -351,12 +342,13 @@ export function AppLayout() {
             zIndex: 1,
           }}
         >
-          {isMobile && !showBottomNav ? (
-            <Button type="text" icon={<MenuOutlined />} onClick={() => setCollapsed((c) => !c)} title="Меню" />
-          ) : (
-            <Typography.Text strong style={{ fontSize: 20 }}>Blik</Typography.Text>
+          {isMobile ? <Typography.Text strong style={{ fontSize: 20 }}>Blik</Typography.Text> : (
+            <div className="desktop-page-label">
+              {activeGroup && <Typography.Text type="secondary">{activeGroup.label}</Typography.Text>}
+              <Typography.Text strong>{activeItem?.label ?? 'Настройки'}</Typography.Text>
+            </div>
           )}
-          <Space size={isMobile ? 0 : 8} style={{ flexShrink: 0 }}>
+          <Space className="app-header-actions" size={isMobile ? 0 : 8}>
             <Button
               type="text"
               icon={<SearchOutlined />}
@@ -364,7 +356,7 @@ export function AppLayout() {
               title="Поиск (Ctrl/Cmd + K)"
               style={{ color: token.colorTextSecondary }}
             >
-              {!isMobile && <Typography.Text type="secondary" style={{ fontSize: 12 }}>⌘K</Typography.Text>}
+              {!isMobile && <span className="desktop-search-label">Поиск</span>}
             </Button>
             {!isMobile && (
               <Button type="text" shape="circle" icon={<QuestionCircleOutlined />} title="Показать обзор снова" onClick={() => setTourOpen(true)} />
@@ -397,17 +389,21 @@ export function AppLayout() {
                 ],
               }}
             >
-              <Space role="button" tabIndex={0} aria-label="Профиль и настройки" style={{ cursor: 'pointer', marginInlineStart: 4 }}>
+              <Button type="text" className="app-profile" aria-label="Профиль и настройки">
                 <Avatar style={{ backgroundColor: ROLE_COLORS[user.role] }} icon={<UserOutlined />} />
                 {/* Имя/роль скрываем на узких экранах — не помещались в шапку и переносились
                     поверх контента (см. фидбэк со скриншотом); имя всё ещё видно по клику
                     на аватар — не критичная потеря, дропдаун и так открывается по тапу. */}
                 {!isMobile && (
-                  <Typography.Text>
-                    {user.fullName} <Typography.Text type="secondary">· {ROLE_LABELS[user.role]}</Typography.Text>
-                  </Typography.Text>
+                  <span className="desktop-profile-details">
+                    <span className="desktop-profile-name">
+                      <Typography.Text ellipsis title={user.fullName}>{user.fullName}</Typography.Text>
+                      <Typography.Text type="secondary">{ROLE_LABELS[user.role]}</Typography.Text>
+                    </span>
+                    <DownOutlined className="desktop-profile-chevron" />
+                  </span>
                 )}
-              </Space>
+              </Button>
             </Dropdown>
           </Space>
         </Header>
@@ -427,7 +423,7 @@ export function AppLayout() {
           {announcement?.text && (
             <Alert type="warning" showIcon banner title={announcement.text} style={{ marginBottom: 16, borderRadius: token.borderRadius }} />
           )}
-          <Outlet />
+          <div className="app-page"><Outlet /></div>
         </Content>
       </Layout>
       <Tour open={tourOpen && onboardingTourEnabled} onClose={closeTour} onFinish={closeTour} steps={tourSteps} />

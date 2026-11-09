@@ -163,11 +163,12 @@ export function DashboardPage() {
       size="small"
       pagination={false}
       dataSource={tickets}
-      scroll={{ x: 'max-content' }}
+      scroll={{ x: 680 }}
+      tableLayout="fixed"
       onRow={(r) => ({ onClick: () => navigate(`/tickets/${r.id}`), style: { cursor: 'pointer' } })}
       columns={[
-        { title: '№', dataIndex: 'number', render: (value: string) => shortTicketNumber(value), width: 120 },
-        { title: 'Кабинет', render: (_, t) => `${t.location.building}, каб. ${t.location.room}` },
+        { title: '№', dataIndex: 'number', render: (value: string) => shortTicketNumber(value), width: 76 },
+        { title: 'Кабинет', width: 165, render: (_, t) => `${t.location.building}, каб. ${t.location.room}` },
         { title: 'Описание', dataIndex: 'description', ellipsis: true },
         ...(variant === 'priority'
           ? [{
@@ -208,13 +209,16 @@ export function DashboardPage() {
 
   return (
     <Space direction="vertical" size="large" style={{ display: 'flex' }}>
-      <Typography.Title level={3} style={{ margin: 0 }}>Главная</Typography.Title>
+      <div className="dashboard-heading">
+        <Typography.Title level={isMobile ? 3 : 1} style={{ margin: 0 }}>Главная</Typography.Title>
+        {!isMobile && <Typography.Text type="secondary">Заявки, дедлайны и план работ</Typography.Text>}
+      </div>
 
       {isLoading && <Card loading />}
 
       {data && (
         <Row gutter={[12, 12]}>
-          <Col xs={12} sm={8} md={4}>
+          <Col xs={12} sm={8} xxl={4}>
             <StatTile
               icon={<InboxOutlined />}
               value={data.myOpenTickets.length}
@@ -223,7 +227,7 @@ export function DashboardPage() {
               onClick={data.myOpenTickets.length > 0 ? () => scrollToSection('sec-my-open') : undefined}
             />
           </Col>
-          <Col xs={12} sm={8} md={4}>
+          <Col xs={12} sm={8} xxl={4}>
             <StatTile
               icon={<WarningOutlined />}
               value={data.slaToday.length}
@@ -232,7 +236,7 @@ export function DashboardPage() {
               onClick={data.slaToday.length > 0 ? () => scrollToSection('sec-sla-today') : undefined}
             />
           </Col>
-          <Col xs={12} sm={8} md={4}>
+          <Col xs={12} sm={8} xxl={4}>
             <StatTile
               icon={<ClockCircleOutlined />}
               value={data.slaWeek.length}
@@ -241,7 +245,7 @@ export function DashboardPage() {
               onClick={data.slaWeek.length > 0 ? () => scrollToSection('sec-sla-week') : undefined}
             />
           </Col>
-          <Col xs={12} sm={8} md={4}>
+          <Col xs={12} sm={8} xxl={4}>
             <StatTile
               icon={<RedoOutlined />}
               value={data.reopened.length}
@@ -250,10 +254,10 @@ export function DashboardPage() {
               onClick={data.reopened.length > 0 ? () => scrollToSection('sec-reopened') : undefined}
             />
           </Col>
-          <Col xs={12} sm={8} md={4}>
+          <Col xs={12} sm={8} xxl={4}>
             <StatTile icon={<CheckCircleOutlined />} value={data.weekStats.resolved} label="Закрыто за неделю" tone="good" />
           </Col>
-          <Col xs={12} sm={8} md={4}>
+          <Col xs={12} sm={8} xxl={4}>
             <StatTile
               icon={<StarOutlined />}
               value={data.weekStats.avgRating != null ? data.weekStats.avgRating.toFixed(1) : '—'}

@@ -91,14 +91,15 @@ export function TicketArchivePage() {
           loading={listLoading || isPlaceholderData}
           dataSource={isPlaceholderData ? [] : archived?.items}
           pagination={{ current: page, pageSize, total: archived?.total ?? 0, showSizeChanger: false, onChange: setPage }}
-          scroll={{ x: 'max-content' }}
+          scroll={{ x: 770 }}
+          tableLayout="fixed"
           onRow={(r) => ({ onClick: () => navigate(`/tickets/${r.id}`), style: { cursor: 'pointer' } })}
           columns={[
-            { title: '№', dataIndex: 'number', render: (value: string) => shortTicketNumber(value), width: 120 },
-            { title: 'Кабинет', render: (_, t) => `${t.location.building}, каб. ${t.location.room}` },
+            { title: '№', dataIndex: 'number', render: (value: string) => shortTicketNumber(value), width: 74 },
+            { title: 'Кабинет', width: 145, render: (_, t) => `${t.location.building}, каб. ${t.location.room}` },
             { title: 'Описание', dataIndex: 'description', ellipsis: true },
             { title: 'Статус', width: 120, render: (_, t) => <Tag color={STATUS_COLORS[t.status]}>{STATUS_LABELS[t.status]}</Tag> },
-            { title: 'В архиве с', width: 130, render: (_, t) => (t.archivedAt ? dayjs(t.archivedAt).format('DD.MM.YYYY') : '—') },
+            { title: 'В архиве с', width: 105, render: (_, t) => (t.archivedAt ? dayjs(t.archivedAt).format('DD.MM.YYYY') : '—') },
             {
               title: '',
               width: 160,
