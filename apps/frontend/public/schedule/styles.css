@@ -382,7 +382,9 @@ svg.icon { width: 1em; height: 1em; display: inline-block; vertical-align: -0.15
 
 .slot-body { flex: 1; min-width: 0; }
 .lesson-block + .lesson-block { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border); }
-.lesson-subject { font-weight: 700; font-size: 14.5px; line-height: 1.35; display: flex; align-items: baseline; gap: 5px; flex-wrap: wrap; }
+.lesson-row { display: flex; align-items: flex-start; gap: 8px; }
+.lesson-details { flex: 1; min-width: 0; }
+.lesson-subject { font-weight: 700; font-size: 14.5px; line-height: 1.35; display: flex; align-items: baseline; gap: 5px; flex-wrap: wrap; overflow-wrap: anywhere; }
 .lesson-group-tag {
   font-size: 11px; font-weight: 800;
   padding: 1px 7px; border-radius: 999px;
@@ -399,28 +401,20 @@ svg.icon { width: 1em; height: 1em; display: inline-block; vertical-align: -0.15
 }
 .lesson-meta .meta-item-room svg { color: var(--text); }
 
-/* Колонка кабинетов — сайблинг .slot-time/.slot-body, центрируется по высоте
-   всей карточки (align-self: stretch от родителя + justify-content: center). */
-.slot-rooms {
-  flex: 0 0 auto;
-  max-width: 38%;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: flex-end;
-  gap: 8px;
-}
 .lesson-room {
   display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 20px;
+  align-items: flex-start;
+  gap: 4px;
+  max-width: 40%;
+  font-size: 15px;
   font-weight: 800;
+  font-variant-numeric: tabular-nums;
   color: var(--text);
   text-align: right;
-  line-height: 1.2;
+  overflow-wrap: anywhere;
+  line-height: 1.3;
 }
-.lesson-room svg { color: var(--text); flex: 0 0 auto; }
+.lesson-room svg { flex: 0 0 auto; margin-top: 2px; color: var(--hint); }
 
 .badge {
   display: inline-flex; align-items: center; gap: 4px;

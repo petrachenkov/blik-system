@@ -430,21 +430,12 @@
         empty.textContent = isBreak ? "—" : "Свободен";
         body.appendChild(empty);
       } else {
-        items.forEach((item, i) => {
-          if (i > 0) {
-            const div = document.createElement("div");
-            div.style.marginTop = "8px";
-            div.style.paddingTop = "8px";
-            div.style.borderTop = "1px dashed var(--border)";
-            body.appendChild(div);
-          }
-          if (item.isChange) {
-            const badge = document.createElement("div");
-            badge.className = "badge";
-            badge.textContent = "Замена";
-            body.appendChild(badge);
-          }
-          body.appendChild(lessonBlock({ subject: item.subject, teacher: item.teacher }, { showTeacher: true, groupTag: item.group }));
+        items.forEach((item) => {
+          body.appendChild(lessonBlock({ subject: item.subject, teacher: item.teacher }, {
+            showTeacher: true,
+            groupTag: item.group,
+            badge: item.isChange ? "Замена" : null,
+          }));
         });
       }
 
@@ -558,10 +549,22 @@
     el.innerHTML = `${escapeHtml(state.selectedDay || "")}<span class="day-heading-date">${formatDateShort(d)}</span>`;
   }
 
-  function lessonBlock(lesson, opts) {
-    opts = opts || {};
+  function lessonBlock(lesson, opts = {}) {
     const wrap = document.createElement("div");
     wrap.className = "lesson-block";
+    if (opts.badge) {
+      const badge = document.createElement("div");
+      badge.className = "badge";
+      badge.textContent = opts.badge;
+      wrap.appendChild(badge);
+    }
+
+    const row = document.createElement("div");
+    row.className = "lesson-row";
+    const details = document.createElement("div");
+    details.className = "lesson-details";
+    row.appendChild(details);
+    wrap.appendChild(row);
 
     const subj = document.createElement("div");
     subj.className = "lesson-subject";
@@ -577,7 +580,7 @@
       gtag.textContent = opts.groupTag;
       subj.appendChild(gtag);
     }
-    wrap.appendChild(subj);
+    details.appendChild(subj);
 
     const metaParts = [];
     if (opts.showTeacher && lesson.teacher) metaParts.push({ icon: "cap", text: lesson.teacher });
@@ -588,28 +591,17 @@
       metaEl.innerHTML = metaParts
         .map((p) => `<span class="meta-item">${p.icon ? iconSvg(p.icon) : ""}${escapeHtml(p.text)}</span>`)
         .join("");
-      wrap.appendChild(metaEl);
+      details.appendChild(metaEl);
     }
 
-    return wrap;
-  }
-
-  /** Отдельная колонка с номерами кабинетов — сайблинг .slot-time/.slot-body внутри
-   * .slot-card, а не часть .lesson-block, чтобы центрироваться по высоте всей
-   * карточки целиком (в т.ч. когда в теле есть бейдж "Замена"/зачёркнутая исходная
-   * пара), а не только по высоте одного урока. */
-  function appendRoomColumn(card, rooms) {
-    const list = (rooms || []).filter(Boolean);
-    if (list.length === 0) return;
-    const col = document.createElement("div");
-    col.className = "slot-rooms";
-    for (const room of list) {
+    const room = normalizeRoom(lesson.room);
+    if (room) {
       const el = document.createElement("div");
       el.className = "lesson-room";
-      el.innerHTML = `${iconSvg("pin")}${escapeHtml(normalizeRoom(room))}`;
-      col.appendChild(el);
+      el.innerHTML = `${iconSvg("pin")}<span>${escapeHtml(room)}</span>`;
+      row.appendChild(el);
     }
-    card.appendChild(col);
+    return wrap;
   }
 
   function escapeHtml(s) {
@@ -655,11 +647,7 @@
       body.className = "slot-body";
 
       if (changeEntry) {
-        const badge = document.createElement("div");
-        badge.className = "badge";
-        badge.textContent = "Замена";
-        body.appendChild(badge);
-        body.appendChild(lessonBlock(changeEntry, { showTeacher: true }));
+        body.appendChild(lessonBlock(changeEntry, { showTeacher: true, badge: "Замена" }));
         if (lessons.length > 0) {
           const orig = document.createElement("div");
           orig.className = "original-lesson";
@@ -680,7 +668,6 @@
       }
 
       card.appendChild(body);
-      appendRoomColumn(card, changeEntry ? [changeEntry.room] : lessons.map((l) => l.room));
       cards.push(card);
     }
     return cards;
@@ -813,34 +800,22 @@
         empty.textContent = row.entries.length > 0 ? "На этой неделе пары нет" : "Окно";
         body.appendChild(empty);
       } else {
-        items.forEach((item, i) => {
-          if (i > 0) {
-            const div = document.createElement("div");
-            div.style.marginTop = "8px";
-            div.style.paddingTop = "8px";
-            div.style.borderTop = "1px dashed var(--border)";
-            body.appendChild(div);
+        items.forEach((item) => {
+          const block = lessonBlock(item, {
+            groupTag: item.group,
+            badge: item.kind === "changed" ? "Замена" : item.kind === "substitute" ? "Замещение" : null,
+          });
+          if (item.kind === "changed" && item.original) {
+            const orig = document.createElement("div");
+            orig.className = "original-lesson";
+            orig.innerHTML = `<span>${escapeHtml([item.original.subject, formatRoom(item.original.room)].filter(Boolean).join(" · "))}</span>`;
+            block.appendChild(orig);
           }
-          if (item.kind === "changed" || item.kind === "substitute") {
-            const badge = document.createElement("div");
-            badge.className = "badge";
-            badge.textContent = item.kind === "substitute" ? "Замещение" : "Замена";
-            body.appendChild(badge);
-            body.appendChild(lessonBlock({ subject: item.subject, room: item.room }, { groupTag: item.group }));
-            if (item.kind === "changed" && item.original) {
-              const orig = document.createElement("div");
-              orig.className = "original-lesson";
-              orig.innerHTML = `<span>${escapeHtml([item.original.subject, formatRoom(item.original.room)].filter(Boolean).join(" · "))}</span>`;
-              body.appendChild(orig);
-            }
-          } else {
-            body.appendChild(lessonBlock({ subject: item.subject, room: item.room, week: item.week }, { groupTag: item.group }));
-          }
+          body.appendChild(block);
         });
       }
 
       card.appendChild(body);
-      appendRoomColumn(card, items.map((item) => item.room));
       cards.push(card);
     }
     return cards;
