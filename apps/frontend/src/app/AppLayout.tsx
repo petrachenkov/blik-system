@@ -149,6 +149,16 @@ export function AppLayout() {
     { key: '/tickets/new', icon: <PlusOutlined />, label: 'Новая заявка' },
     ...(!isTeacher ? [{ key: '/knowledge', icon: <ReadOutlined />, label: 'База знаний' }] : []),
     ...(isAdmin ? [{ key: '/services', icon: <AppstoreOutlined />, label: 'Сервисы' }] : []),
+    ...(!isTeacher
+      ? [{
+          key: 'group-schedule',
+          label: 'Расписание занятий',
+          children: [
+            { key: '/schedule', icon: <CalendarOutlined />, label: 'Открыть расписание' },
+            ...(isAdmin ? [{ key: '/manage-schedule', icon: <ControlOutlined />, label: 'Управление расписанием' }] : []),
+          ],
+        }]
+      : [{ key: '/schedule', icon: <CalendarOutlined />, label: 'Расписание' }]),
     ...(!isTeacher && visitsEnabled
       ? [isAdmin ? {
           key: 'group-scheduling',
@@ -238,6 +248,7 @@ export function AppLayout() {
     { key: '/tickets', icon: <UnorderedListOutlined />, label: 'Заявки' },
     { key: '/tickets/new', icon: <PlusOutlined />, label: 'Новая заявка' },
     { key: '/cartridges', icon: <PrinterOutlined />, label: 'Картриджи' },
+    { key: '/schedule', icon: <CalendarOutlined />, label: 'Расписание' },
   ] : [
     { key: '/dashboard', icon: <HomeOutlined />, label: 'Главная' },
     { key: '/tickets', icon: <UnorderedListOutlined />, label: 'Заявки' },
@@ -254,6 +265,10 @@ export function AppLayout() {
   const activeItem = activeGroup?.children?.find((child) => child.key === activeKey)
     ?? menuItems.find((item) => item.key === activeKey);
   const openGroup = menuExpansion?.route === route ? menuExpansion.key : activeGroup?.key;
+  const openMenuItem = (key: string) => {
+    if (key === '/schedule') window.location.assign(key);
+    else navigate(key);
+  };
 
   return (
     <Layout className="app-shell" style={{ minHeight: '100dvh' }}>
@@ -279,7 +294,7 @@ export function AppLayout() {
               <button
                 key={item.key}
                 aria-current={active ? 'page' : undefined}
-                onClick={() => item.key === 'more' ? setMobileMenuOpen(true) : navigate(item.key)}
+                onClick={() => item.key === 'more' ? setMobileMenuOpen(true) : openMenuItem(item.key)}
                 style={{
                   flex: 1,
                   display: 'flex',
@@ -320,7 +335,7 @@ export function AppLayout() {
                 openKeys={openGroup ? [openGroup] : []}
                 items={menuItems}
                 onOpenChange={(keys) => setMenuExpansion({ route, key: keys.at(-1) })}
-                onClick={({ key }) => navigate(key)}
+                onClick={({ key }) => openMenuItem(key)}
               />
             </nav>
           </Sider>
@@ -332,7 +347,7 @@ export function AppLayout() {
           selectedKeys={[activeKey]}
           items={menuItems.map((item) => item.children ? { ...item, type: 'group' as const } : item)}
           style={{ background: SIDER_BG }}
-          onClick={({ key }) => { navigate(key); setMobileMenuOpen(false); }}
+          onClick={({ key }) => { openMenuItem(key); setMobileMenuOpen(false); }}
         />
       </Drawer>}
       <Layout style={{ minWidth: 0 }}>

@@ -58,6 +58,10 @@ services:
       VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
       VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:admin@example.com}
       MAX_BOT_TOKEN: ${MAX_BOT_TOKEN:-}
+      SCHEDULE_MAIN_SHEET_ID: ${SCHEDULE_MAIN_SHEET_ID:-1IUU0k0st5qsU3sFBfl8wazscE7R6_XHSAlsdJCwUa_4}
+      SCHEDULE_CHANGES_SHEET_ID: ${SCHEDULE_CHANGES_SHEET_ID:-1OpDaApQYxlwF9tYmzKbIr_zBt9AO-67aRqKKQXFyU7Q}
+      SCHEDULE_MAX_BOT_TOKEN: ${SCHEDULE_MAX_BOT_TOKEN:-}
+      SCHEDULE_MAX_WEBHOOK_SECRET: ${SCHEDULE_MAX_WEBHOOK_SECRET:-}
     volumes:
       - uploads:/app/uploads
     # CA-сертификат для ldaps:// — через configs с inline content, не bind-mount файла из

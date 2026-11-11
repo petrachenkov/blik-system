@@ -35,6 +35,28 @@ enum UserRole {
   ADMIN // Системный администратор — полный доступ ко всем функциям
   INTERN // Практикант — видит и ведёт только назначенные ему заявки
   USER // Заявитель (сотрудник/преподаватель)
+  SCHEDULE // Редактор расписания
+}
+
+model CollegeScheduleSnapshot {
+  key  String @id
+  data Json
+}
+
+model CollegeScheduleSettings {
+  id            Int @id
+  anchorMonday  String?
+  anchorColor   String?
+  announcement String?
+}
+
+model CollegeScheduleOverride {
+  group   String
+  day     String
+  pair    String
+  lessons Json
+
+  @@id([group, day, pair])
 }
 
 enum UserSource {

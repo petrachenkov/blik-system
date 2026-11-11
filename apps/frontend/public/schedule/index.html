@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Расписание</title>
+<base href="/schedule/" />
+<script src="https://st.max.ru/js/max-web-app.js" defer></script>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <aside id="schedule-announcement" class="changes-banner" role="status" hidden></aside>
+  <div id="schedule-load-error" class="loading-spinner" role="status" hidden>Расписание пока недоступно. Страница попробует загрузить его снова.</div>
+  <div id="app">
+
+    <!-- ===== Role picker ===== -->
+    <section id="screen-role" class="screen" hidden>
+      <header class="hero">
+        <div class="hero-badge" data-icon="calendar"></div>
+        <h1>Кто ты?</h1>
+        <p class="hero-sub">Подберём расписание именно для тебя</p>
+      </header>
+      <div class="role-cards">
+        <button class="role-card" id="role-student">
+          <span class="role-icon" data-icon="users"></span>
+          <span class="role-title">Студент</span>
+          <span class="role-sub">Расписание своей группы</span>
+        </button>
+        <button class="role-card" id="role-teacher">
+          <span class="role-icon" data-icon="cap"></span>
+          <span class="role-title">Преподаватель</span>
+          <span class="role-sub">Занятия во всех группах</span>
+        </button>
+        <button class="role-card" id="role-room">
+          <span class="role-icon" data-icon="pin"></span>
+          <span class="role-title">Кабинет</span>
+          <span class="role-sub">Что проходит в кабинете</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- ===== Group picker screen ===== -->
+    <section id="screen-picker" class="screen" hidden>
+      <header class="picker-header">
+        <button class="icon-btn" id="btn-picker-back" aria-label="Назад" data-icon="chevron-left"></button>
+        <h1>Выбери группу</h1>
+        <span class="icon-btn-spacer"></span>
+      </header>
+
+      <div class="course-tabs" id="course-tabs"></div>
+      <div class="group-grid" id="group-grid"></div>
+      <button class="link-btn" data-goto="teacher">Я преподаватель →</button>
+      <button class="link-btn" data-goto="room">Ищу кабинет →</button>
+    </section>
+
+    <!-- ===== Teacher picker screen ===== -->
+    <section id="screen-picker-teacher" class="screen" hidden>
+      <header class="picker-header">
+        <button class="icon-btn" id="btn-teacher-picker-back" aria-label="Назад" data-icon="chevron-left"></button>
+        <h1>Выбери себя</h1>
+        <span class="icon-btn-spacer"></span>
+      </header>
+
+      <div class="search-bar">
+        <span class="search-icon" data-icon="search"></span>
+        <input id="teacher-search" type="text" placeholder="Начните вводить фамилию…" autocomplete="off" />
+      </div>
+      <div class="teacher-list" id="teacher-list"></div>
+      <button class="link-btn" data-goto="student">Я студент →</button>
+      <button class="link-btn" data-goto="room">Ищу кабинет →</button>
+    </section>
+
+    <!-- ===== Room picker screen ===== -->
+    <section id="screen-picker-room" class="screen" hidden>
+      <header class="picker-header">
+        <button class="icon-btn" id="btn-room-picker-back" aria-label="Назад" data-icon="chevron-left"></button>
+        <h1>Выбери кабинет</h1>
+        <span class="icon-btn-spacer"></span>
+      </header>
+
+      <div class="search-bar">
+        <span class="search-icon" data-icon="search"></span>
+        <input id="room-search" type="text" placeholder="Начните вводить номер…" autocomplete="off" />
+      </div>
+      <div class="teacher-list" id="room-list"></div>
+      <button class="link-btn" data-goto="student">Я студент →</button>
+      <button class="link-btn" data-goto="teacher">Я преподаватель →</button>
+    </section>
+
+    <!-- ===== Main schedule screen ===== -->
+    <section id="screen-main" class="screen" hidden>
+      <header class="topbar">
+        <button class="icon-btn" id="btn-change-group" aria-label="Сменить" data-icon="switch"></button>
+        <div class="topbar-title">
+          <span class="avatar" id="current-avatar"></span>
+          <span class="topbar-text">
+            <span class="group-name" id="current-group">—</span>
+            <span class="course-name" id="current-course"></span>
+          </span>
+        </div>
+        <span class="icon-btn-spacer"></span>
+      </header>
+
+      <div id="live-banner" class="live-banner" hidden></div>
+
+      <div id="week-bar" class="week-bar" hidden></div>
+
+      <div id="changes-banner" class="changes-banner" hidden></div>
+
+      <div class="view-toggle" id="view-toggle">
+        <button class="view-tab active" data-view="day">День</button>
+        <button class="view-tab" data-view="week">Неделя</button>
+      </div>
+
+      <nav class="date-strip" id="date-strip"></nav>
+      <div class="day-heading" id="day-heading"></div>
+
+      <main class="slots" id="slots"></main>
+    </section>
+
+    <div id="toast" class="toast" hidden></div>
+  </div>
+
+<script src="app.js"></script>
+</body>
+</html>

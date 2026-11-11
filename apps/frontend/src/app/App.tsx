@@ -39,6 +39,7 @@ import { AppLayout } from './AppLayout';
 import { ProtectedRoute } from './ProtectedRoute';
 import { MaxAppBootstrap } from './MaxAppBootstrap';
 import { ServicesPage } from '../features/services/ServicesPage';
+import { ScheduleManagementPage } from '../features/college-schedule/ScheduleManagementPage';
 
 export function App() {
   // Проверяем MAX один раз на запуск страницы. После входа можно свободно
@@ -59,7 +60,10 @@ export function App() {
           тоже вне ProtectedRoute/AppLayout; после входа обычный редирект в общий Blik. */}
       <Route path="/max" element={<MaxAppBootstrap />} />
 
-      <Route element={<ProtectedRoute />}>
+      <Route element={<ProtectedRoute allowedRoles={['ADMIN', 'SCHEDULE']} />}>
+        <Route path="/manage-schedule" element={<ScheduleManagementPage />} />
+      </Route>
+      <Route element={<ProtectedRoute allowedRoles={['ADMIN', 'INTERN', 'USER']} />}>
         <Route element={<AppLayout />}>
           {/* Стартовая: сотрудник → дашборд, преподаватель → список своих заявок. */}
           <Route path="/" element={<IndexRedirect />} />

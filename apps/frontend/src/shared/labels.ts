@@ -35,6 +35,7 @@ export const PRIORITY_COLORS: Record<TicketPriority, string> = {
 };
 
 export const ROLE_LABELS: Record<UserRole, string> = {
+  SCHEDULE: 'Расписание',
   ADMIN: 'Сисадмин',
   INTERN: 'Практикант',
   USER: 'Преподаватель',
@@ -43,6 +44,7 @@ export const ROLE_LABELS: Record<UserRole, string> = {
 /** Цвет аватара/бейджа роли — используется в чате заявки, чтобы сразу отличать
  * сисадмина/практиканта от преподавателя-заявителя. */
 export const ROLE_COLORS: Record<UserRole, string> = {
+  SCHEDULE: '#531dab',
   ADMIN: '#1677ff',
   INTERN: '#13a8a8',
   USER: '#8c8c8c',

@@ -56,6 +56,10 @@ export const envSchema = z.object({
   // Опционален по образцу VAPID: не задан — фича мягко
   // скрывается (GET /auth/max/status -> configured:false), сервер не падает при старте.
   MAX_BOT_TOKEN: z.string().optional(),
+  SCHEDULE_MAIN_SHEET_ID: z.string().regex(/^[\w-]+$/).default('1IUU0k0st5qsU3sFBfl8wazscE7R6_XHSAlsdJCwUa_4'),
+  SCHEDULE_CHANGES_SHEET_ID: z.string().regex(/^[\w-]+$/).default('1OpDaApQYxlwF9tYmzKbIr_zBt9AO-67aRqKKQXFyU7Q'),
+  SCHEDULE_MAX_BOT_TOKEN: z.string().optional(),
+  SCHEDULE_MAX_WEBHOOK_SECRET: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

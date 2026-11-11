@@ -133,7 +133,7 @@ export class NotificationsService {
 
     for (const userId of recipientIds) {
       const user = await this.prisma.user.findUnique({ where: { id: userId } });
-      if (!user || !user.isActive) continue;
+      if (!user || !user.isActive || user.role === UserRole.SCHEDULE) continue;
 
       // Личные настройки (см. план): строки нет → всё включено; enabled=false → тип
       // выключен полностью (даже колокольчик); push=false → без прерывающих каналов.
@@ -233,7 +233,7 @@ export class NotificationsService {
     const title = shortTicketNumber(params.title);
     return this.prisma.$transaction(async (tx) => {
       const users = await tx.user.findMany({
-        where: { isActive: true, id: params.targetUserId },
+        where: { isActive: true, id: params.targetUserId, role: { not: UserRole.SCHEDULE } },
         select: {
           id: true,
           notificationPreferences: { where: { type }, select: { enabled: true, push: true } },

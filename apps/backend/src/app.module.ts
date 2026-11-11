@@ -29,6 +29,7 @@ import { WorkingHoursModule } from './system/working-hours.module.js';
 import { SystemModule } from './system/system.module.js';
 import { SearchModule } from './search/search.module.js';
 import { LocalServicesModule } from './local-services/local-services.module.js';
+import { CollegeScheduleModule } from './college-schedule/college-schedule.module.js';
 
 @Module({
   imports: [
@@ -63,6 +64,7 @@ import { LocalServicesModule } from './local-services/local-services.module.js';
     SystemModule,
     SearchModule,
     LocalServicesModule,
+    CollegeScheduleModule,
   ],
   controllers: [AppController],
   providers: [

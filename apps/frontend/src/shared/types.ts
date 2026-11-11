@@ -1,4 +1,4 @@
-export type UserRole = 'ADMIN' | 'INTERN' | 'USER';
+export type UserRole = 'ADMIN' | 'INTERN' | 'USER' | 'SCHEDULE';
 export type UserSource = 'LDAP' | 'LOCAL';
 
 export type TicketStatus = 'NEW' | 'ASSIGNED' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED' | 'REJECTED' | 'REOPENED';

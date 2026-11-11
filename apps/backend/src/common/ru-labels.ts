@@ -45,6 +45,7 @@ export const HISTORY_ACTION_LABELS_RU: Record<HistoryAction, string> = {
 // Перенесено 1-в-1 с фронтенда (shared/labels.ts, ROLE_LABELS) — нужно для подписи автора
 // сообщения в PDF-справке.
 export const ROLE_LABELS_RU: Record<UserRole, string> = {
+  SCHEDULE: 'Расписание',
   ADMIN: 'Сисадмин',
   INTERN: 'Практикант',
   USER: 'Преподаватель',

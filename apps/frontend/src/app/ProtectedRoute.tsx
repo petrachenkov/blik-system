@@ -17,7 +17,7 @@ export function ProtectedRoute({ allowedRoles }: { allowedRoles?: UserRole[] }) 
   if (!user) return <Navigate to="/login" replace />;
 
   if (allowedRoles && !allowedRoles.includes(user.role)) {
-    return <Navigate to="/" replace />;
+    return <Navigate to={user.role === 'SCHEDULE' ? '/manage-schedule' : '/'} replace />;
   }
 
   return <Outlet />;

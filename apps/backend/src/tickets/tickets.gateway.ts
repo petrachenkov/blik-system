@@ -66,6 +66,10 @@ export class TicketsGateway implements OnGatewayConnection, OnGatewayDisconnect 
       const payload = this.jwtService.verify<JwtAccessPayload>(token, {
         secret: this.config.get('JWT_ACCESS_SECRET', { infer: true }),
       });
+      if (payload.role === UserRole.SCHEDULE) {
+        client.disconnect(true);
+        return;
+      }
       client.data.user = {
         id: payload.sub,
         username: payload.username,

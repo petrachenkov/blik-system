@@ -400,7 +400,7 @@ export class TicketsService {
         throw new ForbiddenException('Назначать заявку другому исполнителю может только сисадмин');
       }
       const assignee = await this.prisma.user.findUnique({ where: { id: dto.assigneeId } });
-      if (!assignee || assignee.role === UserRole.USER || !assignee.isActive) {
+      if (!assignee?.isActive || (assignee.role !== UserRole.ADMIN && assignee.role !== UserRole.INTERN)) {
         throw new BadRequestException('Указанный пользователь не может быть исполнителем');
       }
       assigneeId = dto.assigneeId;
@@ -561,7 +561,7 @@ export class TicketsService {
       throw new ForbiddenException('Добавлять соисполнителя может сисадмин или назначенный исполнитель');
     }
     const target = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!target || !target.isActive || target.role === UserRole.USER) {
+    if (!target?.isActive || (target.role !== UserRole.ADMIN && target.role !== UserRole.INTERN)) {
       throw new BadRequestException('Соисполнителем может быть только активный сотрудник техподдержки');
     }
     if (ticket.assignedToId === userId || ticket.createdById === userId) {

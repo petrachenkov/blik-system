@@ -6,5 +6,6 @@ import { isStaffRole } from '../shared/labels';
 export function IndexRedirect() {
   const { user } = useAuth();
   if (!user) return null;
+  if (user.role === 'SCHEDULE') return <Navigate to="/manage-schedule" replace />;
   return <Navigate to={isStaffRole(user.role) ? '/dashboard' : '/tickets'} replace />;
 }

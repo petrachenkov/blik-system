@@ -21,7 +21,7 @@ export function FeatureFlagsProvider({ children }: { children: ReactNode }) {
   const { data } = useQuery({
     queryKey: ['system', 'flags'],
     queryFn: fetchFeatureFlags,
-    enabled: Boolean(user),
+    enabled: Boolean(user && user.role !== 'SCHEDULE'),
     refetchInterval: 60_000,
     staleTime: 30_000,
   });
