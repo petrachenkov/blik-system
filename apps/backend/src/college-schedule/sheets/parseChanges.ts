@@ -106,13 +106,21 @@ function parseTab(rows: string[][]): ChangesSnapshot | null {
  * represents "today" (exact date match wins; otherwise falls back to the
  * only tab that has data, since the staff usually keep just one tab live).
  */
-export async function loadChanges(spreadsheetId: string, todayIso: string): Promise<ChangesSnapshot | null> {
+export async function loadChanges(spreadsheetId: string, todayIso: string) {
   const parsedTabs: ChangesSnapshot[] = [];
   for (const tab of CHANGES_TABS) {
     const rows = await fetchSheetTabCsv(spreadsheetId, tab);
     const parsed = parseTab(rows);
     if (parsed) parsedTabs.push(parsed);
   }
+  const upcoming = new Map<string, ChangesSnapshot>();
+  for (const tab of parsedTabs) {
+    if (tab.isoDate && tab.isoDate >= todayIso && !upcoming.has(tab.isoDate)) upcoming.set(tab.isoDate, tab);
+  }
+  return { visible: selectVisibleTab(parsedTabs, todayIso), upcoming: [...upcoming.values()] };
+}
+
+function selectVisibleTab(parsedTabs: ChangesSnapshot[], todayIso: string): ChangesSnapshot | null {
   if (parsedTabs.length === 0) return null;
 
   const exact = parsedTabs.find((t) => t.isoDate === todayIso);

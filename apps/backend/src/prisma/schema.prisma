@@ -59,6 +59,30 @@ model CollegeScheduleOverride {
   @@id([group, day, pair])
 }
 
+model CollegeScheduleMaxSubscriber {
+  userId        String @id
+  announcements Boolean @default(false)
+  scope         String?
+  target        String?
+  deliveries    CollegeScheduleMaxDelivery[]
+
+  @@index([scope, target])
+}
+
+model CollegeScheduleMaxDelivery {
+  id          Int      @id @default(autoincrement())
+  userId      String
+  subscriber  CollegeScheduleMaxSubscriber @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  text        String
+  scope       String?
+  target      String?
+  attempts    Int      @default(0)
+  availableAt DateTime @default(now())
+
+  @@index([availableAt, id])
+  @@index([userId])
+}
+
 enum UserSource {
   LDAP
   LOCAL // master / breakglass-аккаунты

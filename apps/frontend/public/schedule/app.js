@@ -221,6 +221,112 @@
     return [...set].sort((a, b) => a.localeCompare(b, "ru"));
   }
 
+  const notifications = document.getElementById("notification-dialog");
+  const notificationStatus = document.getElementById("notification-status");
+  const notificationSettings = document.getElementById("notification-settings");
+  const notificationSelection = document.getElementById("notification-selection");
+  const notificationAnnouncements = document.getElementById("notification-announcements");
+  const notificationSave = document.getElementById("notification-save");
+  const openMax = document.getElementById("notification-open-max");
+
+  function maxInitData() {
+    return window.WebApp?.initData || new URLSearchParams(location.hash.slice(1)).get("WebAppData");
+  }
+
+  function displayedSchedule() {
+    if (state.role === "student" && state.selectedGroup) return { scope: "group", target: state.selectedGroup };
+    if (state.role === "teacher" && state.selectedTeacher) return { scope: "teacher", target: state.selectedTeacher };
+    return null;
+  }
+
+  async function subscriptionRequest(method, data) {
+    const response = await fetch("/api/college-schedule/max/subscription", {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...data, initData: maxInitData() }),
+      signal: AbortSignal.timeout(8000),
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(typeof result.message === "string" ? result.message : "Настройки подписки недоступны");
+    return result;
+  }
+
+  function fillNotificationSettings(subscription) {
+    const value = (selection) => selection ? JSON.stringify(selection) : "";
+    notificationSelection.replaceChildren(new Option("Не получать замены", ""));
+    const groups = Object.keys(state.schedule.groups).sort((a, b) => a.localeCompare(b, "ru"));
+    for (const [scope, label, targets] of [["group", "Группы", groups], ["teacher", "Преподаватели", getAllTeachers()]]) {
+      const section = document.createElement("optgroup");
+      section.label = label;
+      for (const target of targets) section.appendChild(new Option(target, value({ scope, target })));
+      notificationSelection.appendChild(section);
+    }
+    const selection = subscription.selection ?? (subscription.announcements ? null : displayedSchedule());
+    const selectedValue = value(selection);
+    if (selection && !Array.from(notificationSelection.options).some((option) => option.value === selectedValue)) {
+      notificationSelection.appendChild(new Option(selection.target, selectedValue));
+    }
+    notificationSelection.value = selectedValue;
+    notificationAnnouncements.checked = subscription.announcements;
+  }
+
+  async function openNotifications() {
+    notificationSettings.hidden = true;
+    openMax.hidden = true;
+    notificationStatus.textContent = "Загружаем настройки…";
+    if (!notifications.open) notifications.showModal();
+    try {
+      if (!maxInitData()) {
+        notificationStatus.textContent = "Для подписки откройте это расписание в мини-приложении бота MAX.";
+        const { url } = await api("max/mini-app");
+        if (url) {
+          const link = new URL(url);
+          const selection = displayedSchedule();
+          const bytes = new TextEncoder().encode(JSON.stringify(selection));
+          const payload = btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+          link.searchParams.set("startapp", `notifications_${payload}`);
+          openMax.href = link.href;
+          openMax.hidden = false;
+        }
+        return;
+      }
+      fillNotificationSettings(await subscriptionRequest("POST", {}));
+      notificationStatus.textContent = "Выберите группу или преподавателя. Если вы ещё не запускали этого бота, нажмите «Начать» в его чате.";
+      notificationSettings.hidden = false;
+    } catch (error) {
+      notificationStatus.textContent = error.message || "Настройки подписки недоступны. Попробуйте снова.";
+    }
+  }
+
+  function notificationStart() {
+    const start = new URLSearchParams(maxInitData() ?? "").get("start_param") ?? new URLSearchParams(location.search).get("WebAppStartParam");
+    if (!start?.startsWith("notifications_") || !maxInitData()) return undefined;
+    try {
+      const payload = start.slice("notifications_".length).replace(/-/g, "+").replace(/_/g, "/");
+      return JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(payload), (c) => c.charCodeAt(0))));
+    } catch {
+      return null;
+    }
+  }
+
+  document.querySelectorAll("[data-notifications]").forEach((button) => { button.onclick = openNotifications; });
+  document.getElementById("notification-close").onclick = () => notifications.close();
+  document.getElementById("notification-form").onsubmit = async (event) => {
+    event.preventDefault();
+    if (notificationSave.disabled || notificationSettings.hidden) return;
+    notificationSave.disabled = true;
+    try {
+      const selection = notificationSelection.value ? JSON.parse(notificationSelection.value) : null;
+      const announcements = notificationAnnouncements.checked;
+      await subscriptionRequest("PUT", { selection, announcements });
+      notificationStatus.textContent = selection || announcements ? "Подписка сохранена." : "Уведомления отключены.";
+    } catch (error) {
+      notificationStatus.textContent = error.message || "Не удалось сохранить подписку.";
+    } finally {
+      notificationSave.disabled = false;
+    }
+  };
+
   function renderTeacherPicker() {
     if (!state.allTeachers) state.allTeachers = getAllTeachers();
     const input = document.getElementById("teacher-search");
@@ -1106,8 +1212,9 @@
       // Шаринг расписания по ссылке: ?group=... / ?teacher=... / ?room=... побеждает сохранённый
       // выбор, чтобы ссылка, переданная другому человеку, всегда открывала именно то, что в ней указано.
       const params = new URLSearchParams(location.search);
-      const linkGroup = params.get("group");
-      const linkTeacher = params.get("teacher");
+      const start = notificationStart();
+      const linkGroup = params.get("group") || (start?.scope === "group" && typeof start.target === "string" ? start.target : null);
+      const linkTeacher = params.get("teacher") || (start?.scope === "teacher" && typeof start.target === "string" ? start.target : null);
       const linkRoom = params.get("room");
       const role = linkGroup ? "student" : linkTeacher ? "teacher" : linkRoom ? "room" : localStorage.getItem("role");
       const savedGroup = linkGroup || localStorage.getItem("selectedGroup");
@@ -1138,6 +1245,7 @@
       } else {
         showScreen("role");
       }
+      if (start !== undefined) void openNotifications();
     } catch (e) {
       console.error(e);
       document.getElementById("schedule-load-error").hidden = false;

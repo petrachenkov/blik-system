@@ -20,6 +20,7 @@
         <h1>Кто ты?</h1>
         <p class="hero-sub">Подберём расписание именно для тебя</p>
       </header>
+      <button type="button" class="link-btn" data-notifications>Уведомления MAX</button>
       <div class="role-cards">
         <button class="role-card" id="role-student">
           <span class="role-icon" data-icon="users"></span>
@@ -98,7 +99,7 @@
             <span class="course-name" id="current-course"></span>
           </span>
         </div>
-        <span class="icon-btn-spacer"></span>
+        <button class="icon-btn" type="button" aria-label="Уведомления MAX" data-icon="bell-outline" data-notifications></button>
       </header>
 
       <div id="live-banner" class="live-banner" hidden></div>
@@ -120,6 +121,28 @@
 
     <div id="toast" class="toast" hidden></div>
   </div>
+
+  <dialog id="notification-dialog" class="notification-dialog" aria-labelledby="notification-title">
+    <form id="notification-form">
+      <header class="notification-header">
+        <h2 id="notification-title">Уведомления MAX</h2>
+        <button id="notification-close" type="button" class="icon-btn" aria-label="Закрыть" data-icon="x"></button>
+      </header>
+      <p id="notification-status" role="status"></p>
+      <div id="notification-settings" hidden>
+        <label class="notification-field">
+          <span>Замены в расписании</span>
+          <select id="notification-selection"></select>
+        </label>
+        <label class="notification-check">
+          <input id="notification-announcements" type="checkbox" />
+          <span>Объявления колледжа</span>
+        </label>
+        <button id="notification-save" class="notification-action" type="submit">Сохранить</button>
+      </div>
+      <a id="notification-open-max" class="notification-action" hidden>Открыть расписание в MAX</a>
+    </form>
+  </dialog>
 
 <script src="app.js"></script>
 </body>

@@ -460,6 +460,36 @@ svg.icon { width: 1em; height: 1em; display: inline-block; vertical-align: -0.15
 
 .loading-spinner { display: flex; align-items: center; justify-content: center; padding: 60px 0; color: var(--hint); font-size: 14px; }
 
+.notification-dialog {
+  box-sizing: border-box;
+  width: min(420px, calc(100% - 32px));
+  max-height: calc(100% - 32px);
+  padding: 18px;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+}
+.notification-dialog::backdrop { background: rgb(0 0 0 / 55%); }
+.notification-header, .notification-check { display: flex; align-items: center; gap: 12px; }
+.notification-header { justify-content: space-between; }
+.notification-header h2 { margin: 0; font-size: 19px; }
+#notification-status { margin: 8px 0 14px; color: var(--hint); font-size: 14px; }
+.notification-field { display: grid; gap: 6px; min-width: 0; }
+.notification-field select {
+  width: 100%; min-width: 0; padding: 10px;
+  background: var(--surface); color: var(--text); font: inherit;
+  border: 1px solid var(--border); border-radius: 8px;
+}
+.notification-check { margin: 16px 0; }
+.notification-check input { width: 18px; height: 18px; accent-color: var(--accent); }
+.notification-action {
+  display: block; width: 100%; padding: 10px;
+  color: var(--accent-text); background: var(--accent);
+  border-radius: 8px; text-align: center; text-decoration: none; font-weight: 700;
+}
+.notification-action:disabled { opacity: 0.65; }
+
 /* ---------- Desktop: не растягивать на всю ширину ---------- */
 @media (min-width: 640px) {
   .screen {

@@ -122,7 +122,7 @@ export function ScheduleManagementPage() {
           </Space>
         </Card>
         <Card title="Объявление" loading={settings.isLoading}>
-          <Typography.Paragraph type="secondary">Объявление видно всем над расписанием и в ответе бота.</Typography.Paragraph>
+          <Typography.Paragraph type="secondary">Объявление появится над расписанием и придёт подписчикам в MAX.</Typography.Paragraph>
           <Input.TextArea aria-label="Текст объявления" rows={4} maxLength={2000} showCount
             value={announcement} onChange={(event) => setDraft(event.target.value)} />
           <Space wrap style={{ marginTop: 20 }}>
