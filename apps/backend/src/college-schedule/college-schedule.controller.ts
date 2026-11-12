@@ -1,10 +1,11 @@
-import { BadRequestException, Body, Controller, Get, Put, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, HttpCode, HttpStatus, Post, Put, UseGuards } from '@nestjs/common';
 import { z } from 'zod';
 import { UserRole } from '../../generated/prisma/index.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
-import { ScheduleAuthGuard } from '../common/guards/jwt-auth.guard.js';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
 import { CollegeScheduleService } from './college-schedule.service.js';
+import { ScheduleMaxService } from './schedule-max.service.js';
 
 const week = z.enum(['red', 'blue']);
 const lesson = z.object({
@@ -41,10 +42,10 @@ export class CollegeScheduleController {
 }
 
 @Controller('college-schedule/manage')
-@UseGuards(ScheduleAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.ADMIN, UserRole.SCHEDULE)
 export class CollegeScheduleManagementController {
-  constructor(private readonly service: CollegeScheduleService) {}
+  constructor(private readonly service: CollegeScheduleService, private readonly max: ScheduleMaxService) {}
 
   @Put('week')
   setWeek(@Body('week') value: unknown) {
@@ -58,6 +59,14 @@ export class CollegeScheduleManagementController {
     const parsed = z.string().trim().min(1).max(2000).nullable().safeParse(value);
     if (!parsed.success) throw new BadRequestException('Введите объявление до 2000 символов');
     return this.service.setAnnouncement(parsed.data);
+  }
+
+  @Post('broadcast')
+  @HttpCode(HttpStatus.ACCEPTED)
+  broadcast(@Body('text') value: unknown) {
+    const parsed = z.string().trim().min(1).max(2000).safeParse(value);
+    if (!parsed.success) throw new BadRequestException('Введите текст рассылки до 2000 символов');
+    return this.max.broadcast(parsed.data);
   }
 
   @Put('lessons')

@@ -138,6 +138,8 @@ export function AppLayout() {
   ];
 
   const isAdmin = user.role === 'ADMIN';
+  const isScheduleEditor = user.role === 'SCHEDULE';
+  const scheduleManagementItem = { key: '/manage-schedule', icon: <ControlOutlined />, label: 'Управление расписанием' };
   const calendarItem = { key: '/calendar', icon: <CalendarOutlined />, label: 'Календарь' };
   const cartridgesItem = { key: '/cartridges', icon: <PrinterOutlined />, label: 'Картриджи' };
 
@@ -149,13 +151,13 @@ export function AppLayout() {
     { key: '/tickets/new', icon: <PlusOutlined />, label: 'Новая заявка' },
     ...(!isTeacher ? [{ key: '/knowledge', icon: <ReadOutlined />, label: 'База знаний' }] : []),
     ...(isAdmin ? [{ key: '/services', icon: <AppstoreOutlined />, label: 'Сервисы' }] : []),
-    ...(!isTeacher
+    ...(!isTeacher || isScheduleEditor
       ? [{
           key: 'group-schedule',
           label: 'Расписание занятий',
           children: [
             { key: '/schedule', icon: <CalendarOutlined />, label: 'Открыть расписание' },
-            ...(isAdmin ? [{ key: '/manage-schedule', icon: <ControlOutlined />, label: 'Управление расписанием' }] : []),
+            ...(isAdmin || isScheduleEditor ? [scheduleManagementItem] : []),
           ],
         }]
       : [{ key: '/schedule', icon: <CalendarOutlined />, label: 'Расписание' }]),
@@ -249,6 +251,7 @@ export function AppLayout() {
     { key: '/tickets/new', icon: <PlusOutlined />, label: 'Новая заявка' },
     { key: '/cartridges', icon: <PrinterOutlined />, label: 'Картриджи' },
     { key: '/schedule', icon: <CalendarOutlined />, label: 'Расписание' },
+    ...(isScheduleEditor ? [{ ...scheduleManagementItem, label: 'Управление' }] : []),
   ] : [
     { key: '/dashboard', icon: <HomeOutlined />, label: 'Главная' },
     { key: '/tickets', icon: <UnorderedListOutlined />, label: 'Заявки' },

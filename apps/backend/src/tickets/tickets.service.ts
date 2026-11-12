@@ -1,3 +1,4 @@
+import { isApplicantRole } from '../common/utils/is-applicant-role.js';
 import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -733,7 +734,7 @@ export class TicketsService {
     t: Prisma.TicketGetPayload<{ include: typeof TicketsService.REPORT_INCLUDE }>,
     viewerRole?: UserRole,
   ): TicketReportRow {
-    const isTeacherView = viewerRole === UserRole.USER;
+    const isTeacherView = isApplicantRole(viewerRole);
     return {
       number: t.number,
       description: t.description,

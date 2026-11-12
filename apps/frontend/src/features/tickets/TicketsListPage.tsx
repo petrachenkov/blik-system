@@ -92,7 +92,7 @@ export function TicketsListPage() {
   });
 
   const title =
-    user?.role === 'INTERN' ? 'Мои заявки' : user?.role === 'USER' ? 'Мои заявки' : 'Заявки';
+    user?.role === 'ADMIN' ? 'Заявки' : 'Мои заявки';
   const isStaffUi = isStaff;
 
   const bulkMutation = useMutation({

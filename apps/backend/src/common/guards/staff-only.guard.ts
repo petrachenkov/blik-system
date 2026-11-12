@@ -1,11 +1,12 @@
 import { Injectable, type CanActivate, type ExecutionContext, ForbiddenException } from '@nestjs/common';
 import type { Request } from 'express';
 import type { AuthenticatedUser } from '../types/authenticated-user.js';
+import { UserRole } from '../../../generated/prisma/index.js';
 
 /**
  * Разрешает действие только сотрудникам/преподавателям (isStaff = true по членству в группе AD)
  * либо сисадминам всех уровней — им создание заявок не запрещено содержательно, но обычно
- * этим пользуются заявители. Практиканты/сисадмины тоже сотрудники, поэтому isStaff у них true.
+ * этим пользуются заявители. Редактор расписания получает право подачи заявок вместе с ролью.
  */
 @Injectable()
 export class StaffOnlyGuard implements CanActivate {
@@ -13,7 +14,7 @@ export class StaffOnlyGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<Request & { user: AuthenticatedUser }>();
     const user = request.user;
 
-    if (!user?.isStaff) {
+    if (!user?.isStaff && user?.role !== UserRole.SCHEDULE) {
       throw new ForbiddenException('Подавать заявки могут только сотрудники и преподаватели');
     }
 

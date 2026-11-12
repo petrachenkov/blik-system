@@ -1,4 +1,4 @@
-import { Alert, App, Button, Card, Form, Input, Select, Space, Typography } from 'antd';
+import { Alert, App, Button, Card, Form, Input, Popconfirm, Select, Space, Typography } from 'antd';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -14,6 +14,37 @@ type Settings = { currentWeek: Week | null; announcement: string | null };
 
 const settingsKey = ['college-schedule', 'settings'];
 const scheduleKey = ['college-schedule', 'schedule'];
+
+function ScheduleBroadcastCard() {
+  const { message } = App.useApp();
+  const [text, setText] = useState('');
+  const broadcast = useMutation({
+    mutationFn: async (body: string) => (await apiClient.post<{ count: number }>('/college-schedule/manage/broadcast', { text: body })).data,
+    onSuccess: ({ count }) => {
+      if (count === 0) {
+        message.info('Пока нет подписчиков на объявления');
+        return;
+      }
+      setText('');
+      message.success(`Рассылка в очереди. Получателей: ${count}`);
+    },
+    onError: (error) => message.error(extractErrorMessage(error, 'Не удалось создать рассылку')),
+  });
+
+  return (
+    <Card title="Рассылка в MAX">
+      <Typography.Paragraph type="secondary">
+        Разовое сообщение от бота расписания для тех, кто включил объявления колледжа.
+      </Typography.Paragraph>
+      <Input.TextArea aria-label="Текст рассылки" rows={4} maxLength={2000} showCount disabled={broadcast.isPending}
+        value={text} onChange={(event) => setText(event.target.value)} />
+      <Popconfirm title="Отправить сообщение подписчикам в MAX?" okText="Отправить" cancelText="Отмена"
+        disabled={!text.trim() || broadcast.isPending} onConfirm={() => broadcast.mutate(text.trim())}>
+        <Button type="primary" disabled={!text.trim()} loading={broadcast.isPending} style={{ marginTop: 20 }}>Отправить в MAX</Button>
+      </Popconfirm>
+    </Card>
+  );
+}
 
 function LessonEditor({ group, slot }: { group: string; slot: Slot }) {
   const { message } = App.useApp();
@@ -108,7 +139,11 @@ export function ScheduleManagementPage() {
       <Space wrap style={{ marginBottom: 20 }}>
         <Button href="/schedule" target="_blank" rel="noopener">Открыть расписание</Button>
         {user?.role === 'ADMIN' ? <Link to="/">Вернуться в Blik</Link> : (
-          <Button onClick={() => void logout().catch(() => {}).finally(() => navigate('/login', { replace: true }))}>Выйти</Button>
+          <>
+            <Button onClick={() => navigate('/tickets')}>Мои заявки</Button>
+            <Button type="primary" onClick={() => navigate('/tickets/new')}>Новая заявка</Button>
+            <Button onClick={() => void logout().catch(() => {}).finally(() => navigate('/login', { replace: true }))}>Выйти</Button>
+          </>
         )}
       </Space>
       <Space orientation="vertical" size={16} style={{ width: '100%' }}>
@@ -132,6 +167,7 @@ export function ScheduleManagementPage() {
               onClick={() => saveSettings.mutate({ field: 'announcement', value: null })}>Снять объявление</Button>
           </Space>
         </Card>
+        <ScheduleBroadcastCard />
         <Card title="Правка пары" loading={schedule.isLoading}>
           {schedule.isError ? <Alert type="warning" showIcon message="Расписание пока недоступно" /> : (
             <Space orientation="vertical" size={12} style={{ width: '100%' }}>

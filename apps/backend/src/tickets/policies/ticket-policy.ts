@@ -28,7 +28,7 @@ export interface CommentForPolicy {
  * видит и может делать, независимо от endpoint-guard'ов уровня контроллера.
  *
  * Роли: ADMIN (Сисадмин) — полный доступ; INTERN (Практикант) — только назначенные ему
- * заявки; USER (Преподаватель) — только собственные.
+ * заявки; USER (Преподаватель) и SCHEDULE (Расписание) — только собственные.
  */
 @Injectable()
 export class TicketPolicy {
@@ -92,7 +92,7 @@ export class TicketPolicy {
 
   canComment(user: AuthenticatedUser, ticket: TicketForPolicy): boolean {
     if (user.role === UserRole.ADMIN) return true;
-    return ticket.createdById === user.id || isTicketWorker(user.id, ticket);
+    return ticket.createdById === user.id || (user.role === UserRole.INTERN && isTicketWorker(user.id, ticket));
   }
 
   /**

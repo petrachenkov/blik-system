@@ -63,7 +63,7 @@ export function App() {
       <Route element={<ProtectedRoute allowedRoles={['ADMIN', 'SCHEDULE']} />}>
         <Route path="/manage-schedule" element={<ScheduleManagementPage />} />
       </Route>
-      <Route element={<ProtectedRoute allowedRoles={['ADMIN', 'INTERN', 'USER']} />}>
+      <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>
           {/* Стартовая: сотрудник → дашборд, преподаватель → список своих заявок. */}
           <Route path="/" element={<IndexRedirect />} />

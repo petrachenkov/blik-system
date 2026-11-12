@@ -3,7 +3,8 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { STORAGE_PROVIDER, type StorageProvider } from '../../storage/storage.interface.js';
 import { ALLOWED_MIME_TYPES, isVideoMimeType } from '../../storage/allowed-mime-types.js';
-import { HistoryAction } from '../../../generated/prisma/index.js';
+import { HistoryAction, type UserRole } from '../../../generated/prisma/index.js';
+import { isApplicantRole } from '../../common/utils/is-applicant-role.js';
 import { TicketHistoryService } from '../history/ticket-history.service.js';
 import type { Env } from '../../config/env.schema.js';
 
@@ -76,9 +77,11 @@ export class AttachmentsService {
     });
   }
 
-  async getForDownload(ticketId: string, attachmentId: string) {
-    const attachment = await this.prisma.ticketAttachment.findUnique({ where: { id: attachmentId } });
-    if (!attachment || attachment.ticketId !== ticketId) {
+  async getForDownload(ticketId: string, attachmentId: string, viewerRole: UserRole) {
+    const attachment = await this.prisma.ticketAttachment.findUnique({
+      where: { id: attachmentId, ticketId }, include: { comment: { select: { isInternal: true } } },
+    });
+    if (!attachment || (attachment.comment?.isInternal && isApplicantRole(viewerRole))) {
       throw new NotFoundException('Файл не найден');
     }
     return { attachment, absolutePath: this.storage.getAbsolutePath(attachment.storedPath) };

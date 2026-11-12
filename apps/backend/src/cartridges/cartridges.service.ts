@@ -1,3 +1,4 @@
+import { isApplicantRole } from '../common/utils/is-applicant-role.js';
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CartridgeRequestStatus, UserRole } from '../../generated/prisma/index.js';
@@ -28,7 +29,7 @@ export class CartridgesService {
 
   /** Видимость: преподаватель видит только свои заявки, все остальные роли — все заявки. */
   private buildVisibilityWhere(user: AuthenticatedUser) {
-    return user.role === UserRole.USER ? { createdById: user.id } : {};
+    return isApplicantRole(user.role) ? { createdById: user.id } : {};
   }
 
   async create(user: AuthenticatedUser, dto: CreateCartridgeRequestDto) {
@@ -87,7 +88,7 @@ export class CartridgesService {
 
   async findOne(user: AuthenticatedUser, id: string) {
     const request = await this.findOneOrThrow(id);
-    if (user.role === UserRole.USER && request.createdById !== user.id) {
+    if (isApplicantRole(user.role) && request.createdById !== user.id) {
       throw new ForbiddenException('Нет доступа к этой заявке');
     }
     return request;

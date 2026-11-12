@@ -1,3 +1,4 @@
+import { isApplicantRole } from '../common/utils/is-applicant-role.js';
 import {
   Body,
   Controller,
@@ -238,15 +239,15 @@ export class TicketsController {
     }
     // Прикреплять статьи базы знаний к ответу может только сотрудник техподдержки —
     // для заявителя, комментирующего собственную заявку, это поле игнорируется/запрещено.
-    if (dto.knowledgeArticleIds?.length && user.role === UserRole.USER) {
+    if (dto.knowledgeArticleIds?.length && isApplicantRole(user.role)) {
       throw new ForbiddenException('Прикреплять статьи базы знаний может только сотрудник техподдержки');
     }
     // Внутреннюю заметку (не видна заявителю) может оставить только сотрудник техподдержки.
-    if (dto.isInternal && user.role === UserRole.USER) {
+    if (dto.isInternal && isApplicantRole(user.role)) {
       throw new ForbiddenException('Оставлять внутренние заметки может только сотрудник техподдержки');
     }
     // @Упоминания — только между сотрудниками (см. план "Упоминания"); заявитель их не видит.
-    if (dto.mentionedUserIds?.length && user.role === UserRole.USER) {
+    if (dto.mentionedUserIds?.length && isApplicantRole(user.role)) {
       throw new ForbiddenException('Упоминать коллег может только сотрудник техподдержки');
     }
 
@@ -339,7 +340,7 @@ export class TicketsController {
     @Res() res: Response,
   ) {
     await this.ticketsService.findOne(user, id);
-    const { attachment, absolutePath } = await this.attachmentsService.getForDownload(id, attachmentId);
+    const { attachment, absolutePath } = await this.attachmentsService.getForDownload(id, attachmentId, user.role);
     res.download(absolutePath, attachment.filename);
   }
 }

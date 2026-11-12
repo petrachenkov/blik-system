@@ -1,6 +1,7 @@
+import { isApplicantRole } from '../../common/utils/is-applicant-role.js';
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service.js';
-import { HistoryAction, UserRole } from '../../../generated/prisma/index.js';
+import { HistoryAction, type UserRole } from '../../../generated/prisma/index.js';
 import { stripPriority } from '../../common/utils/strip-priority.js';
 
 @Injectable()
@@ -32,7 +33,7 @@ export class TicketHistoryService {
       include: { actor: { select: { id: true, fullName: true, role: true } } },
     });
 
-    if (viewerRole !== UserRole.USER) return entries;
+    if (!isApplicantRole(viewerRole)) return entries;
 
     return entries.map((entry) =>
       entry.action === HistoryAction.CLASSIFIED

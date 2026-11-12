@@ -14,7 +14,7 @@ import {
 } from '@nestjs/websockets';
 import type { Server, Socket } from 'socket.io';
 import type { Env } from '../config/env.schema.js';
-import { UserRole } from '../../generated/prisma/index.js';
+import { isApplicantRole } from '../common/utils/is-applicant-role.js';
 import type { JwtAccessPayload } from '../auth/strategies/jwt.strategy.js';
 import type { AuthenticatedUser } from '../common/types/authenticated-user.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -66,10 +66,6 @@ export class TicketsGateway implements OnGatewayConnection, OnGatewayDisconnect 
       const payload = this.jwtService.verify<JwtAccessPayload>(token, {
         secret: this.config.get('JWT_ACCESS_SECRET', { infer: true }),
       });
-      if (payload.role === UserRole.SCHEDULE) {
-        client.disconnect(true);
-        return;
-      }
       client.data.user = {
         id: payload.sub,
         username: payload.username,
@@ -90,15 +86,21 @@ export class TicketsGateway implements OnGatewayConnection, OnGatewayDisconnect 
   /** Заявка видна проверяем через TicketPolicy.canView — так же, как REST-эндпоинт GET :id. */
   @SubscribeMessage('join')
   async handleJoin(@ConnectedSocket() client: Socket<any, any, any, SocketData>, @MessageBody() data: { ticketId?: string }) {
-    const user = client.data.user;
-    if (!user || !data?.ticketId) return;
+    const id = client.data.user?.id;
+    if (!id || !data?.ticketId) return;
     if (!(await this.flags.isEnabled(FEATURE_FLAGS.LIVE_CHAT))) return;
 
-    const ticket = await this.ticketsService.findOneOrThrow(data.ticketId).catch(() => null);
-    if (!ticket || !this.policy.canView(user, ticket)) return;
+    const [user, ticket] = await Promise.all([
+      this.prisma.user.findUnique({
+        where: { id, isActive: true },
+        select: { id: true, username: true, role: true, isStaff: true, isMaster: true },
+      }),
+      this.ticketsService.findOneOrThrow(data.ticketId).catch(() => null),
+    ]);
+    if (!user || !ticket || !this.policy.canView(user, ticket)) return;
 
     client.join(this.roomFor(data.ticketId));
-    if (user.role !== UserRole.USER) {
+    if (!isApplicantRole(user.role)) {
       client.join(this.staffRoomFor(data.ticketId));
     }
   }

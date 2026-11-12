@@ -1,3 +1,4 @@
+import { isApplicantRole } from '../../common/utils/is-applicant-role.js';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../prisma/prisma.service.js';
@@ -78,7 +79,7 @@ export class CommentsService {
    */
   findByTicket(ticketId: string, viewerRole?: UserRole) {
     return this.prisma.ticketComment.findMany({
-      where: { ticketId, ...(viewerRole === UserRole.USER ? { isInternal: false } : {}) },
+      where: { ticketId, ...(isApplicantRole(viewerRole) ? { isInternal: false } : {}) },
       orderBy: { createdAt: 'asc' },
       include: COMMENT_INCLUDE,
     });

@@ -84,12 +84,22 @@ export class ScheduleMaxService {
   }
 
   async enqueueAnnouncement(tx: Prisma.TransactionClient, text: string) {
-    if (!this.configured()) return;
+    if (!this.configured()) return 0;
     const subscribers = await tx.collegeScheduleMaxSubscriber.findMany({
       where: { announcements: true }, select: { userId: true },
     });
     if (subscribers.length) await tx.collegeScheduleMaxDelivery.createMany({
       data: subscribers.map(({ userId }) => ({ userId, text })),
+    });
+    return subscribers.length;
+  }
+
+  async broadcast(text: string) {
+    if (!this.configured()) throw new ServiceUnavailableException('Бот расписания не настроен');
+    return this.db.$transaction(async (tx) => {
+      await this.lock(tx);
+      const count = await this.enqueueAnnouncement(tx, `📣 Сообщение колледжа\n\n${text}`);
+      return { count };
     });
   }
 
