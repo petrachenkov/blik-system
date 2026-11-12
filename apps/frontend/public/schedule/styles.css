@@ -218,8 +218,15 @@ svg.icon { width: 1em; height: 1em; display: inline-block; vertical-align: -0.15
 }
 .topbar-title { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 0; }
 .topbar-text { display: flex; flex-direction: column; align-items: center; min-width: 0; }
-.group-name { font-size: 16px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
+.group-name { font-size: 16px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: min(200px, 100%); }
 .course-name { font-size: 11.5px; color: var(--hint); }
+.topbar-subscribe {
+  width: auto; height: 44px; gap: 5px; padding: 0 10px;
+  color: var(--accent-text); background: var(--accent); border-color: transparent;
+  font-size: 12px; font-weight: 800;
+}
+.topbar-subscribe svg { display: block; width: 17px; height: 17px; }
+.topbar-subscribe:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .week-bar { margin: 0 16px 8px; display: flex; align-items: center; gap: 8px; }
 .week-pill {

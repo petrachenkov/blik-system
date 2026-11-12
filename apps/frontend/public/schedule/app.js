@@ -222,6 +222,7 @@
   }
 
   const notifications = document.getElementById("notification-dialog");
+  const notificationTitle = document.getElementById("notification-title");
   const notificationStatus = document.getElementById("notification-status");
   const notificationSettings = document.getElementById("notification-settings");
   const notificationSelection = document.getElementById("notification-selection");
@@ -251,7 +252,7 @@
     return result;
   }
 
-  function fillNotificationSettings(subscription) {
+  function fillNotificationSettings(subscription, current) {
     const value = (selection) => selection ? JSON.stringify(selection) : "";
     notificationSelection.replaceChildren(new Option("Не получать замены", ""));
     const groups = Object.keys(state.schedule.groups).sort((a, b) => a.localeCompare(b, "ru"));
@@ -261,16 +262,21 @@
       for (const target of targets) section.appendChild(new Option(target, value({ scope, target })));
       notificationSelection.appendChild(section);
     }
-    const selection = subscription.selection ?? (subscription.announcements ? null : displayedSchedule());
+    const selection = current ?? subscription.selection;
     const selectedValue = value(selection);
-    if (selection && !Array.from(notificationSelection.options).some((option) => option.value === selectedValue)) {
-      notificationSelection.appendChild(new Option(selection.target, selectedValue));
+    for (const item of [selection, subscription.selection]) {
+      const itemValue = value(item);
+      if (item && !Array.from(notificationSelection.options).some((option) => option.value === itemValue)) {
+        notificationSelection.appendChild(new Option(item.target, itemValue));
+      }
     }
     notificationSelection.value = selectedValue;
     notificationAnnouncements.checked = subscription.announcements;
   }
 
   async function openNotifications() {
+    const current = displayedSchedule();
+    notificationTitle.textContent = current ? `Подписка · ${current.target}` : "Уведомления MAX";
     notificationSettings.hidden = true;
     openMax.hidden = true;
     notificationStatus.textContent = "Загружаем настройки…";
@@ -281,8 +287,7 @@
         const { url } = await api("max/mini-app");
         if (url) {
           const link = new URL(url);
-          const selection = displayedSchedule();
-          const bytes = new TextEncoder().encode(JSON.stringify(selection));
+          const bytes = new TextEncoder().encode(JSON.stringify(current));
           const payload = btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
           link.searchParams.set("startapp", `notifications_${payload}`);
           openMax.href = link.href;
@@ -290,8 +295,13 @@
         }
         return;
       }
-      fillNotificationSettings(await subscriptionRequest("POST", {}));
-      notificationStatus.textContent = "Выберите группу или преподавателя. Если вы ещё не запускали этого бота, нажмите «Начать» в его чате.";
+      const subscription = await subscriptionRequest("POST", {});
+      fillNotificationSettings(subscription, current);
+      const previous = subscription.selection;
+      const switching = current && previous && (current.scope !== previous.scope || current.target !== previous.target);
+      notificationStatus.textContent = switching
+        ? `Сейчас вы получаете замены для «${previous.target}». При сохранении нового выбора подписка изменится.`
+        : "Если вы ещё не запускали этого бота, нажмите «Начать» в его чате.";
       notificationSettings.hidden = false;
     } catch (error) {
       notificationStatus.textContent = error.message || "Настройки подписки недоступны. Попробуйте снова.";
