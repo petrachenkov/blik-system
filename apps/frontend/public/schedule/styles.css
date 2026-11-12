@@ -510,6 +510,8 @@ svg.icon { width: 1em; height: 1em; display: inline-block; vertical-align: -0.15
   .course-tabs { padding-top: 6px; }
   .topbar { padding-block: max(6px, env(safe-area-inset-top, 0px)) 6px; }
   #schedule-announcement { margin-block: 6px 4px; }
+  .lesson-room { align-self: center; align-items: center; }
+  .lesson-room svg { margin-top: 0; }
 }
 
 @media (max-width: 380px) {
