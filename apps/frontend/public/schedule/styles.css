@@ -131,33 +131,31 @@ svg.icon { width: 1em; height: 1em; display: inline-block; vertical-align: -0.15
 
 /* ---------- Course tabs + group grid ---------- */
 .course-tabs {
-  display: flex; gap: 8px;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 62px), 1fr)); gap: 6px;
   padding: 12px 16px 4px;
-  overflow-x: auto;
-  scrollbar-width: none;
 }
-.course-tabs::-webkit-scrollbar { display: none; }
 .course-chip {
-  flex: 0 0 auto;
-  padding: 9px 16px;
+  min-width: 0; min-height: 44px;
+  padding: 8px 4px;
   border-radius: 999px;
   background: var(--surface);
   color: var(--text);
   font-size: 14px;
   font-weight: 700;
   border: 1px solid var(--border);
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 .course-chip.active { background: var(--accent); color: #fff; border-color: transparent; }
 
 .group-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 89px), 1fr));
+  gap: 8px;
   padding: 14px 16px 8px;
 }
 .group-card {
-  padding: 16px 8px;
+  min-width: 0; min-height: 48px; padding: 10px 6px;
+  overflow-wrap: anywhere;
   text-align: center;
   background: var(--surface);
   border-radius: var(--radius-md);
@@ -180,7 +178,7 @@ svg.icon { width: 1em; height: 1em; display: inline-block; vertical-align: -0.15
 .search-icon { color: var(--hint); font-size: 16px; flex: 0 0 auto; display: flex; }
 .search-bar input {
   border: none; outline: none; background: transparent;
-  font-size: 15px; color: var(--text); width: 100%;
+  font-size: 15px; color: var(--text); width: 100%; min-width: 0;
 }
 .search-bar input::placeholder { color: var(--hint); }
 
@@ -193,7 +191,7 @@ svg.icon { width: 1em; height: 1em; display: inline-block; vertical-align: -0.15
 }
 .teacher-row:active { background: var(--surface); }
 .teacher-row:last-child { border-bottom: none; }
-.teacher-name { font-size: 15px; font-weight: 700; }
+.teacher-name { min-width: 0; overflow-wrap: anywhere; font-size: 15px; font-weight: 700; }
 .empty-note { color: var(--hint); font-size: 13.5px; padding: 24px 20px; text-align: center; }
 
 .avatar {
@@ -218,7 +216,7 @@ svg.icon { width: 1em; height: 1em; display: inline-block; vertical-align: -0.15
 }
 .topbar-title { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 0; }
 .topbar-text { display: flex; flex-direction: column; align-items: center; min-width: 0; }
-.group-name { font-size: 16px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: min(200px, 100%); }
+.group-name { font-size: 16px; font-weight: 800; line-height: 1.2; text-align: center; overflow-wrap: anywhere; max-width: 100%; }
 .course-name { font-size: 11.5px; color: var(--hint); }
 .topbar-subscribe {
   width: 44px; height: 44px;
@@ -227,7 +225,7 @@ svg.icon { width: 1em; height: 1em; display: inline-block; vertical-align: -0.15
 .topbar-subscribe svg.icon { display: block; width: 22px; height: 22px; stroke-width: 2.6; }
 .topbar-subscribe:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-.week-bar { margin: 0 16px 8px; display: flex; align-items: center; gap: 8px; }
+.week-bar { margin: 0 16px 8px; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .week-pill {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 6px 12px;
@@ -258,11 +256,11 @@ svg.icon { width: 1em; height: 1em; display: inline-block; vertical-align: -0.15
 }
 .live-banner.is-current { border-color: rgba(0,186,124,0.35); background: rgba(0,186,124,0.08); }
 
-.live-top { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+.live-top { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; margin-bottom: 5px; }
 .live-label { font-size: 11.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; color: var(--hint); flex: 1; }
 .live-banner.is-current .live-label { color: #00925f; }
 @media (prefers-color-scheme: dark) { .live-banner.is-current .live-label { color: var(--green); } }
-.live-time { font-size: 12px; font-weight: 700; color: var(--hint); white-space: nowrap; }
+.live-time { font-size: 12px; font-weight: 700; color: var(--hint); }
 
 .live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); flex: 0 0 auto; position: relative; }
 .live-dot::after {
@@ -274,7 +272,7 @@ svg.icon { width: 1em; height: 1em; display: inline-block; vertical-align: -0.15
 @keyframes livePulse { 0% { transform: scale(0.4); opacity: 0.5; } 100% { transform: scale(1.7); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .live-dot::after { animation: none; opacity: 0; } }
 
-.live-subject { font-size: 15px; font-weight: 800; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.live-subject { font-size: 15px; font-weight: 800; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; overflow-wrap: anywhere; }
 .live-change-tag { background: rgba(255,159,10,0.18); color: #b36200; border-color: transparent; }
 @media (prefers-color-scheme: dark) { .live-change-tag { color: #ff9f0a; } }
 
@@ -304,7 +302,7 @@ svg.icon { width: 1em; height: 1em; display: inline-block; vertical-align: -0.15
 
 /* ---------- View toggle (День / Неделя) ---------- */
 .view-toggle {
-  position: sticky; top: 66px; z-index: 4;
+  position: sticky; top: var(--schedule-header-height, 72px); z-index: 4;
   display: flex; gap: 22px;
   padding: 2px 16px 0;
   background: var(--bg);
@@ -324,7 +322,7 @@ svg.icon { width: 1em; height: 1em; display: inline-block; vertical-align: -0.15
 
 /* ---------- Date strip (день view) ---------- */
 .date-strip {
-  position: sticky; top: 108px; z-index: 4;
+  position: sticky; top: calc(var(--schedule-header-height, 72px) + var(--schedule-tabs-height, 42px)); z-index: 4;
   display: flex; gap: 4px;
   padding: 10px 12px 10px;
   overflow-x: auto;
@@ -334,7 +332,7 @@ svg.icon { width: 1em; height: 1em; display: inline-block; vertical-align: -0.15
 .date-strip::-webkit-scrollbar { display: none; }
 .date-cell {
   flex: 0 0 auto;
-  width: 46px;
+  width: clamp(34px, 12vw, 46px);
   display: flex; flex-direction: column; align-items: center; gap: 5px;
   padding: 6px 0 8px;
   position: relative;
@@ -389,13 +387,20 @@ svg.icon { width: 1em; height: 1em; display: inline-block; vertical-align: -0.15
 .slot-body { flex: 1; min-width: 0; }
 .lesson-block + .lesson-block { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border); }
 .lesson-row { display: flex; align-items: flex-start; gap: 8px; }
-.lesson-details { flex: 1; min-width: 0; }
-.lesson-subject { font-weight: 700; font-size: 14.5px; line-height: 1.35; display: flex; align-items: baseline; gap: 5px; flex-wrap: wrap; overflow-wrap: anywhere; }
+.lesson-subject { flex: 1; min-width: 0; font-weight: 700; font-size: 14.5px; line-height: 1.35; overflow-wrap: anywhere; }
 .lesson-group-tag {
+  display: inline-block;
   font-size: 11px; font-weight: 800;
   padding: 1px 7px; border-radius: 999px;
   background: var(--bg); border: 1px solid var(--border); color: var(--hint);
 }
+.lesson-subject .lesson-group-tag { margin-inline-start: 5px; }
+.lesson-teachers {
+  display: flex; align-items: flex-start; gap: 5px; margin-top: 4px;
+  color: var(--hint); font-size: 12.5px; line-height: 1.4;
+  white-space: pre-line; overflow-wrap: anywhere;
+}
+.lesson-teachers svg { flex: 0 0 auto; margin-top: 2px; }
 .lesson-meta { font-size: 12.5px; color: var(--hint); margin-top: 3px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .lesson-meta .meta-item { display: inline-flex; align-items: center; gap: 4px; }
 .lesson-meta .meta-item svg { color: var(--hint); }
@@ -439,7 +444,7 @@ svg.icon { width: 1em; height: 1em; display: inline-block; vertical-align: -0.15
   text-decoration: line-through;
   opacity: 0.8;
 }
-.original-lesson span { display: block; }
+.original-lesson span { display: block; white-space: pre-line; overflow-wrap: anywhere; }
 
 .reassigned-note { font-size: 12px; color: var(--red); margin-top: 4px; font-weight: 600; }
 
@@ -479,7 +484,7 @@ svg.icon { width: 1em; height: 1em; display: inline-block; vertical-align: -0.15
 .notification-dialog::backdrop { background: rgb(0 0 0 / 55%); }
 .notification-header, .notification-check { display: flex; align-items: center; gap: 12px; }
 .notification-header { justify-content: space-between; }
-.notification-header h2 { margin: 0; font-size: 19px; }
+.notification-header h2 { margin: 0; min-width: 0; overflow-wrap: anywhere; font-size: 19px; }
 #notification-status { margin: 8px 0 14px; color: var(--hint); font-size: 14px; }
 .notification-field { display: grid; gap: 6px; min-width: 0; }
 .notification-field select {
@@ -495,6 +500,15 @@ svg.icon { width: 1em; height: 1em; display: inline-block; vertical-align: -0.15
   border-radius: 8px; text-align: center; text-decoration: none; font-weight: 700;
 }
 .notification-action:disabled { opacity: 0.65; }
+
+@media (max-width: 380px) {
+  .topbar { gap: 8px; }
+  .topbar-title > .avatar { display: none; }
+  .slots { padding-inline: 12px; }
+  .day-section { padding-inline: 12px; }
+  .slot-card, .slot-card.compact { gap: 8px; padding-inline: 9px; }
+  .slot-time { flex-basis: 48px; }
+}
 
 /* ---------- Desktop: не растягивать на всю ширину ---------- */
 @media (min-width: 640px) {

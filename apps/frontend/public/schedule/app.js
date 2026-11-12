@@ -115,6 +115,17 @@
   }
 
   const SCREENS = ["role", "picker", "picker-teacher", "picker-room", "main"];
+  const mainScreen = document.getElementById("screen-main");
+  const stickyOffsets = new ResizeObserver((entries) => {
+    for (const { target } of entries) {
+      const height = target.getBoundingClientRect().height;
+      const property = target.id === "view-toggle" ? "--schedule-tabs-height" : "--schedule-header-height";
+      if (height) mainScreen.style.setProperty(property, `${height}px`);
+    }
+  });
+  stickyOffsets.observe(mainScreen.querySelector(".topbar"));
+  stickyOffsets.observe(document.getElementById("view-toggle"));
+
   function showScreen(name) {
     state.currentScreen = name;
     for (const s of SCREENS) {
@@ -171,7 +182,8 @@
     for (const course of courses) {
       const chip = document.createElement("button");
       chip.className = "course-chip" + (course === state.selectedCourse ? " active" : "");
-      chip.textContent = course;
+      chip.textContent = course.toLocaleLowerCase("ru");
+      chip.setAttribute("aria-pressed", String(course === state.selectedCourse));
       chip.onclick = () => {
         haptic("light");
         state.selectedCourse = course;
@@ -185,7 +197,7 @@
     for (const group of groups) {
       const card = document.createElement("button");
       card.className = "group-card";
-      card.textContent = group;
+      card.textContent = group.replace(/-/g, "‑");
       card.onclick = () => selectGroup(group);
       gridEl.appendChild(card);
     }
@@ -677,9 +689,6 @@
 
     const row = document.createElement("div");
     row.className = "lesson-row";
-    const details = document.createElement("div");
-    details.className = "lesson-details";
-    row.appendChild(details);
     wrap.appendChild(row);
 
     const subj = document.createElement("div");
@@ -696,19 +705,7 @@
       gtag.textContent = opts.groupTag;
       subj.appendChild(gtag);
     }
-    details.appendChild(subj);
-
-    const metaParts = [];
-    if (opts.showTeacher && lesson.teacher) metaParts.push({ icon: "cap", text: lesson.teacher });
-    else if (lesson.teacher && !opts.showTeacher) metaParts.push({ icon: null, text: lesson.teacher });
-    if (metaParts.length) {
-      const metaEl = document.createElement("div");
-      metaEl.className = "lesson-meta";
-      metaEl.innerHTML = metaParts
-        .map((p) => `<span class="meta-item">${p.icon ? iconSvg(p.icon) : ""}${escapeHtml(p.text)}</span>`)
-        .join("");
-      details.appendChild(metaEl);
-    }
+    row.appendChild(subj);
 
     const room = normalizeRoom(lesson.room);
     if (room) {
@@ -717,7 +714,20 @@
       el.innerHTML = `${iconSvg("pin")}<span>${escapeHtml(room)}</span>`;
       row.appendChild(el);
     }
+    const teachers = formatTeacherNames(lesson.teacher);
+    if (teachers) {
+      const meta = document.createElement("div");
+      meta.className = "lesson-teachers";
+      meta.innerHTML = `${opts.showTeacher ? iconSvg("cap") : ""}<span>${escapeHtml(teachers)}</span>`;
+      wrap.appendChild(meta);
+    }
     return wrap;
+  }
+
+  function formatTeacherNames(value = "") {
+    return (value || "").split(/[,;\n]+/).map((name) => name.trim()).filter(Boolean)
+      .map((name) => name.replace(/(?:\s+(?:[А-ЯЁA-Z]\.\s*)+)$/u, (initials) => initials.replace(/\s+/g, "\u00a0")))
+      .join("\n");
   }
 
   function escapeHtml(s) {
@@ -769,7 +779,8 @@
           orig.className = "original-lesson";
           for (const l of lessons) {
             const line = document.createElement("span");
-            line.textContent = [l.subject, l.teacher, formatRoom(l.room)].filter(Boolean).join(" · ");
+            line.textContent = [[l.subject, formatRoom(l.room)].filter(Boolean).join(" · "), formatTeacherNames(l.teacher)]
+              .filter(Boolean).join("\n");
             orig.appendChild(line);
           }
           body.appendChild(orig);
