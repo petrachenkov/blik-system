@@ -147,6 +147,7 @@ export function ScheduleManagementPage() {
         )}
       </Space>
       <Space orientation="vertical" size={16} style={{ width: '100%' }}>
+        <ScheduleBroadcastCard />
         {settings.isError && <Alert type="error" showIcon message="Не удалось загрузить настройки расписания" />}
         <Card title="Цвет текущей недели" loading={settings.isLoading}>
           <Typography.Paragraph>{weekLabel}</Typography.Paragraph>
@@ -167,7 +168,6 @@ export function ScheduleManagementPage() {
               onClick={() => saveSettings.mutate({ field: 'announcement', value: null })}>Снять объявление</Button>
           </Space>
         </Card>
-        <ScheduleBroadcastCard />
         <Card title="Правка пары" loading={schedule.isLoading}>
           {schedule.isError ? <Alert type="warning" showIcon message="Расписание пока недоступно" /> : (
             <Space orientation="vertical" size={12} style={{ width: '100%' }}>

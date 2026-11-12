@@ -386,8 +386,9 @@ svg.icon { width: 1em; height: 1em; display: inline-block; vertical-align: -0.15
 
 .slot-body { flex: 1; min-width: 0; }
 .lesson-block + .lesson-block { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border); }
-.lesson-row { display: flex; align-items: flex-start; gap: 8px; }
-.lesson-subject { flex: 1; min-width: 0; font-weight: 700; font-size: 14.5px; line-height: 1.35; overflow-wrap: anywhere; }
+.lesson-row { display: flex; align-items: center; gap: 8px; }
+.lesson-content { flex: 1; min-width: 0; }
+.lesson-subject { font-weight: 700; font-size: 14.5px; line-height: 1.35; overflow-wrap: anywhere; }
 .lesson-group-tag {
   display: inline-block;
   font-size: 11px; font-weight: 800;
@@ -414,7 +415,7 @@ svg.icon { width: 1em; height: 1em; display: inline-block; vertical-align: -0.15
 
 .lesson-room {
   display: inline-flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 4px;
   max-width: 40%;
   font-size: 15px;
@@ -425,7 +426,7 @@ svg.icon { width: 1em; height: 1em; display: inline-block; vertical-align: -0.15
   overflow-wrap: anywhere;
   line-height: 1.3;
 }
-.lesson-room svg { flex: 0 0 auto; margin-top: 2px; color: var(--hint); }
+.lesson-room svg { flex: 0 0 auto; color: var(--hint); }
 
 .badge {
   display: inline-flex; align-items: center; gap: 4px;
@@ -510,8 +511,6 @@ svg.icon { width: 1em; height: 1em; display: inline-block; vertical-align: -0.15
   .course-tabs { padding-top: 6px; }
   .topbar { padding-block: max(6px, env(safe-area-inset-top, 0px)) 6px; }
   #schedule-announcement { margin-block: 6px 4px; }
-  .lesson-room { align-self: center; align-items: center; }
-  .lesson-room svg { margin-top: 0; }
 }
 
 @media (max-width: 380px) {

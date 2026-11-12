@@ -680,16 +680,19 @@
   function lessonBlock(lesson, opts = {}) {
     const wrap = document.createElement("div");
     wrap.className = "lesson-block";
+    const row = document.createElement("div");
+    row.className = "lesson-row";
+    wrap.appendChild(row);
+
+    const content = document.createElement("div");
+    content.className = "lesson-content";
+    row.appendChild(content);
     if (opts.badge) {
       const badge = document.createElement("div");
       badge.className = "badge";
       badge.textContent = opts.badge;
-      wrap.appendChild(badge);
+      content.appendChild(badge);
     }
-
-    const row = document.createElement("div");
-    row.className = "lesson-row";
-    wrap.appendChild(row);
 
     const subj = document.createElement("div");
     subj.className = "lesson-subject";
@@ -705,7 +708,14 @@
       gtag.textContent = opts.groupTag;
       subj.appendChild(gtag);
     }
-    row.appendChild(subj);
+    content.appendChild(subj);
+    const teachers = formatTeacherNames(lesson.teacher);
+    if (teachers) {
+      const meta = document.createElement("div");
+      meta.className = "lesson-teachers";
+      meta.innerHTML = `${opts.showTeacher ? iconSvg("cap") : ""}<span>${escapeHtml(teachers)}</span>`;
+      content.appendChild(meta);
+    }
 
     const room = normalizeRoom(lesson.room);
     if (room) {
@@ -713,13 +723,6 @@
       el.className = "lesson-room";
       el.innerHTML = `${iconSvg("pin")}<span>${escapeHtml(room)}</span>`;
       row.appendChild(el);
-    }
-    const teachers = formatTeacherNames(lesson.teacher);
-    if (teachers) {
-      const meta = document.createElement("div");
-      meta.className = "lesson-teachers";
-      meta.innerHTML = `${opts.showTeacher ? iconSvg("cap") : ""}<span>${escapeHtml(teachers)}</span>`;
-      wrap.appendChild(meta);
     }
     return wrap;
   }
