@@ -523,6 +523,8 @@ svg.icon { width: 1em; height: 1em; display: inline-block; vertical-align: -0.15
 
 /* ---------- Desktop: не растягивать на всю ширину ---------- */
 @media (min-width: 640px) {
+  .lesson-room { font-size: 20px; }
+
   .screen {
     max-width: 560px;
     margin: 0 auto;
